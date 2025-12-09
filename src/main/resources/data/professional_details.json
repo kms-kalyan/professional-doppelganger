@@ -1,0 +1,161 @@
+{
+  "name": "Madhu Sai Kalyan Kaluri",
+  "title": "Software Engineer",
+  "email": "madhusaikalyan25@gmail.com",
+  "summary": "Software Engineer with nearly three years of full stack experience in Java, Spring Boot, Node.js, and React. Proficient across the Software Development Life Cycle (SDLC), with expertise in building scalable APIs, optimizing performance, and collaborating in Agile teams to deliver high-quality software.",
+  "skills": [
+    "Spring",
+    "Git",
+    "AWS",
+    "NestJS",
+    "ReactJS",
+    "Docker",
+    "Kubernetes",
+    "Jenkins",
+    "Relational DBMS",
+    "NoSQL",
+    "MySQL",
+    "MongoDB",
+    "GraphQL",
+    "PostgreSQL",
+    "Spark SQL",
+    "Power BI",
+    "JEE",
+    "J2EE",
+    "Eclipse",
+    "Microsoft Visual Studio",
+    "NetBeans IDE",
+    "Maven",
+    "Linux",
+    "GitHub"
+  ],
+  "experience": [
+    {
+      "company": "Goodwork",
+      "position": "Full Stack Engineer Co-op",
+      "duration": "Jan 2025 - May 2025",
+      "description": "Collaborated with teammates to integrate frontend components with backend APIs (Node.js/Redis), achieving a 45% reduction in data integration time. Spearheaded a core application transition to Node.js. Revamped a high-traffic 'Explore Jobs' page using Vue.js, decreasing page load times by 60%. Pioneered a reusable integration library using Node.js managing over 10,000 job postings per day."
+    },
+    {
+      "company": "Tata Consultancy Services",
+      "position": "Software Engineer",
+      "duration": "Aug 2021 - Sept 2023",
+      "description": "Optimized RDMS performance by redesigning SQL queries and schema elements. Developed over 100 backend APIs using Java and Spring Boot. Resolved 50+ backend bugs using JUnit. Implemented CI/CD pipelines using Git and Jenkins for a team supporting 3 million+ customers. Built features using React Native that improved user engagement by 35%."
+    },
+    {
+      "company": "BSNL",
+      "position": "Summer Intern",
+      "duration": "Jun 2019 - Jul 2019",
+      "description": "Streamlined wireless networks leveraging TCP/IP protocols and Optical Fiber communication. Performed SQL data analysis and utilized ORM technologies (Hibernate) to improve relational database query efficiency by more than 10%."
+    }
+  ],
+  "education": [
+    {
+      "institution": "Northeastern University",
+      "degree": "Master of Science in Computer Software Engineering",
+      "graduation_start_date": "September 2023",
+      "graduation_end_date": "December 2025"
+    },
+    {
+      "institution": "Osmania University",
+      "degree": "Bachelor of Engineering in Electronics and Communication Engineering",
+      "graduation_start_date": "July 2017",
+      "graduation_end_date": "July2021"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Cloud-Based Web Application with AWS and Terraform Integration",
+      "description": "Took end-to-end ownership of a secure web application, using Python and Terraform to automate infrastructure deployment on AWS (including S3, SQS, and RDS). [cite_start]Implemented a CI/CD pipeline with GitHub Actions for pipeline automation and automated testing[cite: 36, 37].",
+      "technologies": [
+        "Python",
+        "Terraform",
+        "AWS (S3, SQS, RDS)",
+        "GitHub Actions"
+      ]
+    },
+    {
+      "name": "Pickleball - Full-Stack Tournament Management Platform",
+      "description": "Applied knowledge of data structures, algorithms, and software design to craft a scalable microservices architecture using NestJS and Next.js. [cite_start]Built a responsive UI using Tailwind CSS and TypeScript[cite: 32, 33].",
+      "technologies": [
+        "NestJS",
+        "Next.js 14",
+        "TypeScript",
+        "Tailwind CSS"
+      ]
+    },
+    {
+      "name": "Warehouse Management",
+      "description": "Designed and developed a comprehensive database system for warehouse management (suppliers, products, orders, inventories) using SQL. Utilized advanced SQL queries and stored procedures to generate reports enabling data-driven decision-making for supply chain optimization.",
+      "technologies": [
+        "SQL",
+        "Tableau"
+      ]
+    },
+    {
+      "name": "Daycare Management System",
+      "description": "Designed a system using Java, Swing, and Spring Boot, leveraging MVC and Factory Design Patterns to handle student enrollment and immunization tracking. Implemented a GUI adhering to state regulations for student-to-teacher ratios, including CSV file handling and real-time alerts.",
+      "technologies": [
+        "Java",
+        "Swing",
+        "Spring Boot",
+        "MVC Pattern"
+      ]
+    },
+    {
+      "name": "Harmony Hub Web App",
+      "description": "Developed a collaborative music app that enables users to connect and create shared music sessions. Employed Node.js for Backend, Express.js for REST endpoints, and React for frontend. Collaborated with a cross-functional team to define requirements and conduct code reviews.",
+      "technologies": [
+        "Typescript",
+        "ExpressJS",
+        "ReactJS",
+        "NodeJS",
+        "MongoDB"
+      ]
+    },
+    {
+      "name": "Credit card Fraudulent Detection",
+      "description": "Trained machine learning models using Python, Pandas, and Scikit-learn to distinguish between legitimate and fraud transactions (250,000 rows). Identified Random Forest Classifier as the optimal model with an accuracy of around 99.9%.",
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "Random Forest"
+      ]
+    },
+    {
+      "name": "Airline Reservation System",
+      "description": "Built a CRUD application enabling customers to book, modify, and cancel airline tickets. Leveraged XAMPP server and JDBC for SQL connectivity with MySQL database and Java AWT for the GUI.",
+      "technologies": [
+        "Java Swing",
+        "Java AWT",
+        "XAMPP",
+        "MySQL"
+      ]
+    }
+  ],
+  "certifications": [],
+  "languages": [
+    "Java",
+    "C/C++",
+    "SQL",
+    "JavaScript",
+    "Python",
+    "TypeScript",
+    "HTML/CSS"
+  ],
+  "leadership": [
+    {
+      "role": "Vice-President",
+      "organization": "Swayam E-cell",
+      "duration": "July 2018 - July 2021",
+      "description": "Club that promotes spirit of entrepreneurship among students."
+    },
+    {
+      "role": "RSO Supervisor",
+      "organization": "Student Proctoring Team",
+      "duration": "Feb 2024 - Dec 2025",
+      "description": "Demonstrated effective leadership by supervising and mentoring a team of 50+ proctors."
+    }
+  ]
+}
