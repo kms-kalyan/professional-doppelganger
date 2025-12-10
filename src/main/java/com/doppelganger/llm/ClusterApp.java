@@ -9,11 +9,11 @@ import com.doppelganger.llm.actors.HttpServerActor;
 import com.doppelganger.llm.actors.LLMActorGroq;
 import com.doppelganger.llm.actors.LLMActorHuggingFace;
 import com.doppelganger.llm.actors.LoggingActor;
+import com.doppelganger.llm.actors.MemoryActor;
 import com.doppelganger.llm.actors.RoutingActor;
 import com.doppelganger.llm.messages.LogMessage;
 import com.doppelganger.llm.messages.LLMRequest;
 import com.doppelganger.llm.messages.QueryMessage;
-import com.doppelganger.llm.ProfessionalDetailsLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,28 +66,20 @@ public class ClusterApp {
 
     private static Behavior<Void> createGuardian(int port, int httpPort, String apiKey, String model, String provider) {
         return Behaviors.setup(context -> {
-            // Load professional details from JSON
-            String jsonPath = System.getProperty("professional.details.path", "data/professional_details.json");
-            String professionalDetails = ProfessionalDetailsLoader.loadAndFormat(jsonPath);
-            
-            if (professionalDetails != null && !professionalDetails.isEmpty()) {
-                log.info("Professional details loaded: {} characters", professionalDetails.length());
-            } else {
-                log.warn("No professional details loaded. Please provide professional_details.json file.");
-            }
-            
             // Create service actors - choose provider
+            // LLMActor will load professional profile JSON internally
             ActorRef<LLMRequest> llmActor;
             if ("groq".equals(provider)) {
                 log.info("Using Groq LLM provider with model: {} (FREE & FAST)", model);
                 llmActor = context.spawn(
-                    LLMActorGroq.create(apiKey, model, professionalDetails),
+                    LLMActorGroq.create(apiKey, model),
                     "LLMActor"
                 );
             } else {
                 log.info("Using HuggingFace LLM provider with model: {}", model);
+                // HuggingFace actor also loads profile internally
                 llmActor = context.spawn(
-                    LLMActorHuggingFace.create(apiKey, model, professionalDetails),
+                    LLMActorHuggingFace.create(apiKey, model),
                     "LLMActor"
                 );
             }
@@ -96,9 +88,14 @@ public class ClusterApp {
                 LoggingActor.create(),
                 "LoggingActor"
             );
+            
+            ActorRef<MemoryActor.Command> memoryActor = context.spawn(
+                MemoryActor.create(),
+                "MemoryActor"
+            );
 
             ActorRef<QueryMessage> routingActor = context.spawn(
-                RoutingActor.create(llmActor, loggingActor),
+                RoutingActor.create(llmActor, loggingActor, memoryActor),
                 "RoutingActor"
             );
 

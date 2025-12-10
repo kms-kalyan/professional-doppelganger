@@ -1,7 +1,7 @@
 package com.doppelganger.llm.messages;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import akka.actor.typed.ActorRef;
+import java.util.List;
 
 /**
  * Request message to LLM Actor
@@ -9,15 +9,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class LLMRequest {
     private final String query;
     private final String sessionId;
-    private final akka.actor.typed.ActorRef<LLMResponse> replyTo;
+    private final List<ChatMessage> history;
+    private final ActorRef<LLMResponse> replyTo;
 
-    @JsonCreator
-    public LLMRequest(
-            @JsonProperty("query") String query,
-            @JsonProperty("sessionId") String sessionId,
-            @JsonProperty("replyTo") akka.actor.typed.ActorRef<LLMResponse> replyTo) {
+    public LLMRequest(String query, String sessionId, List<ChatMessage> history, ActorRef<LLMResponse> replyTo) {
         this.query = query;
         this.sessionId = sessionId;
+        this.history = history;
         this.replyTo = replyTo;
     }
 
@@ -28,14 +26,19 @@ public class LLMRequest {
     public String getSessionId() {
         return sessionId;
     }
+    
+    public List<ChatMessage> getHistory() {
+        return history;
+    }
 
-    public akka.actor.typed.ActorRef<LLMResponse> getReplyTo() {
+    public ActorRef<LLMResponse> getReplyTo() {
         return replyTo;
     }
 
     @Override
     public String toString() {
-        return "LLMRequest{query='" + query + "', sessionId='" + sessionId + "'}";
+        return "LLMRequest{query='" + query + "', sessionId='" + sessionId + "', historySize=" + 
+               (history != null ? history.size() : 0) + "}";
     }
 }
 

@@ -5,6 +5,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.doppelganger.llm.ProfessionalDetailsLoader;
+import com.doppelganger.llm.messages.ChatMessage;
 import com.doppelganger.llm.messages.LLMRequest;
 import com.doppelganger.llm.messages.LLMResponse;
 import org.slf4j.Logger;
@@ -16,6 +18,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
+import java.util.ArrayList;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,29 +36,153 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
     private static final Logger log = LoggerFactory.getLogger(LLMActorGroq.class);
     private final String apiKey;
     private final String model;
-    private final String professionalDetails;
+    private final String systemPrompt; // Formatted system prompt from professional profile
+    private final JsonNode professionalProfile; // Parsed JSON profile
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    private LLMActorGroq(ActorContext<LLMRequest> context, String apiKey, String model, String professionalDetails) {
+    private LLMActorGroq(ActorContext<LLMRequest> context, String apiKey, String model) {
         super(context);
         this.apiKey = apiKey;
         this.model = model;
-        this.professionalDetails = professionalDetails;
+        this.objectMapper = new ObjectMapper();
+        
+        // Load and parse professional profile JSON
+        this.professionalProfile = loadProfessionalProfile();
+        
+        // Build system prompt from parsed profile
+        this.systemPrompt = buildSystemPrompt();
+        
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
-        this.objectMapper = new ObjectMapper();
+        
         log.info("LLMActorGroq started on node: {} with model: {}", 
             context.getSelf().path().address(), model);
-        if (professionalDetails != null && !professionalDetails.isEmpty()) {
-            log.info("Professional details loaded: {} characters", professionalDetails.length());
+        if (this.systemPrompt != null && !this.systemPrompt.isEmpty()) {
+            log.info("System prompt loaded: {} characters", this.systemPrompt.length());
         }
     }
 
-    public static Behavior<LLMRequest> create(String apiKey, String model, String professionalDetails) {
-        return Behaviors.setup(context -> new LLMActorGroq(context, apiKey, model, professionalDetails));
+    public static Behavior<LLMRequest> create(String apiKey, String model) {
+        return Behaviors.setup(context -> new LLMActorGroq(context, apiKey, model));
+    }
+    
+    /**
+     * Load professional profile JSON from resources/professional_profile.json
+     */
+    private JsonNode loadProfessionalProfile() {
+        try {
+            // Try loading from resources first
+            InputStream resourceStream = getClass().getClassLoader()
+                .getResourceAsStream("professional_profile.json");
+            
+            if (resourceStream != null) {
+                JsonNode profile = objectMapper.readTree(resourceStream);
+                resourceStream.close();
+                log.info("Loaded professional profile from resources/professional_profile.json");
+                validateProfile(profile);
+                logProfile(profile);
+                return profile;
+            }
+            
+            // Try as file path (for development)
+            Path filePath = Paths.get("src/main/resources/professional_profile.json");
+            if (Files.exists(filePath)) {
+                String jsonContent = Files.readString(filePath);
+                JsonNode profile = objectMapper.readTree(jsonContent);
+                log.info("Loaded professional profile from file: {}", filePath.toAbsolutePath());
+                validateProfile(profile);
+                logProfile(profile);
+                return profile;
+            }
+            
+            // Also try data/professional_details.json for backward compatibility
+            resourceStream = getClass().getClassLoader()
+                .getResourceAsStream("data/professional_details.json");
+            if (resourceStream != null) {
+                JsonNode profile = objectMapper.readTree(resourceStream);
+                resourceStream.close();
+                log.warn("Loaded professional profile from data/professional_details.json (legacy path). Please move to resources/professional_profile.json");
+                validateProfile(profile);
+                logProfile(profile);
+                return profile;
+            }
+            
+            throw new IllegalStateException(
+                "Professional profile JSON not found. Expected: resources/professional_profile.json or " +
+                "src/main/resources/professional_profile.json");
+                
+        } catch (Exception e) {
+            log.error("Failed to load professional profile JSON", e);
+            throw new IllegalStateException("Cannot start LLMActor without professional profile: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Validate that required fields are present in the profile
+     */
+    private void validateProfile(JsonNode profile) {
+        if (profile == null || profile.isNull()) {
+            throw new IllegalStateException("Professional profile JSON is null");
+        }
+        
+        // Required fields
+        if (!profile.has("name") || profile.path("name").asText().trim().isEmpty()) {
+            throw new IllegalStateException("Professional profile missing required field: 'name'");
+        }
+        
+        // At least one of these should be present
+        boolean hasContent = profile.has("summary") || 
+                           (profile.has("experience") && profile.path("experience").isArray() && profile.path("experience").size() > 0) ||
+                           (profile.has("skills") && profile.path("skills").isArray() && profile.path("skills").size() > 0);
+        
+        if (!hasContent) {
+            throw new IllegalStateException(
+                "Professional profile must have at least one of: 'summary', 'experience', or 'skills'");
+        }
+        
+        log.info("Professional profile validation passed");
+    }
+    
+    /**
+     * Log the parsed profile for debugging
+     */
+    private void logProfile(JsonNode profile) {
+        try {
+            String name = profile.has("name") ? profile.path("name").asText() : "Unknown";
+            String title = profile.has("title") ? profile.path("title").asText() : "N/A";
+            int skillsCount = profile.has("skills") && profile.path("skills").isArray() 
+                ? profile.path("skills").size() : 0;
+            int expCount = profile.has("experience") && profile.path("experience").isArray()
+                ? profile.path("experience").size() : 0;
+            
+            log.info("=== Professional Profile Loaded ===");
+            log.info("Name: {}", name);
+            log.info("Title: {}", title);
+            log.info("Skills: {} items", skillsCount);
+            log.info("Experience: {} entries", expCount);
+            log.info("Full JSON: {}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(profile));
+            log.info("====================================");
+        } catch (Exception e) {
+            log.warn("Could not log profile details: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Build system prompt from parsed professional profile
+     */
+    private String buildSystemPrompt() {
+        if (professionalProfile == null) {
+            return "Keep every response under 150 words, unless user asks to elaborate or explain deeply. Be concise and professional.";
+        }
+        
+        // Use ProfessionalDetailsLoader to format the system prompt
+        String basePrompt = ProfessionalDetailsLoader.formatAsSystemPrompt(professionalProfile);
+        
+        // Append response length instruction
+        return basePrompt + "\n\nKeep every response under 150 words, unless user asks to elaborate or explain deeply. Be concise and professional.";
     }
 
     @Override
@@ -70,16 +202,36 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
         // Process the request asynchronously
         getContext().getExecutionContext().execute(() -> {
             try {
-                // Build query with professional details as context
-                String queryWithContext = buildQueryWithContext(request.getQuery());
+                // Get conversation history from request
+                List<ChatMessage> history = request.getHistory() != null ? request.getHistory() : new ArrayList<>();
+                
+                // Build messages array with conversation history
+                StringBuilder messagesJson = new StringBuilder("[");
+                
+                // Add system prompt as FIRST element (required format)
+                if (systemPrompt != null && !systemPrompt.isEmpty()) {
+                    messagesJson.append(String.format("{\"role\":\"system\",\"content\":\"%s\"},", escapeJson(systemPrompt)));
+                }
+                
+                // Add conversation history
+                for (ChatMessage msg : history) {
+                    messagesJson.append(String.format("{\"role\":\"%s\",\"content\":\"%s\"},", 
+                        msg.getRole(), escapeJson(msg.getContent())));
+                }
+                
+                // Add current user query
+                String userQuery = request.getQuery();
+                messagesJson.append(String.format("{\"role\":\"user\",\"content\":\"%s\"}", escapeJson(userQuery)));
+                messagesJson.append("]");
                 
                 // Build JSON request body for Groq (OpenAI-compatible format)
+                // temperature = 0.2, max_tokens = 250 as specified
                 String requestBody = String.format(
-                    "{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":\"%s\"}],\"max_tokens\":500,\"temperature\":0.7}",
+                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":250,\"temperature\":0.2}",
                     model,
-                    escapeJson(queryWithContext)
+                    messagesJson.toString()
                 );
-                log.debug("Request body length: {} characters", requestBody.length());
+                log.debug("Request body length: {} characters, history size: {}", requestBody.length(), history.size());
                 
                 HttpRequest httpRequest = HttpRequest.newBuilder()
                         .uri(URI.create(apiUrl))
@@ -110,7 +262,8 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
                                 throw new Exception("Empty response from Groq API");
                             }
 
-                            log.info("LLMActorGroq generated response for session: {}", request.getSessionId());
+                            log.info("LLMActorGroq generated response for session: {} (history size: {})", 
+                                request.getSessionId(), request.getHistory() != null ? request.getHistory().size() : 0);
                             request.getReplyTo().tell(LLMResponse.success(content, request.getSessionId()));
                             
                         } else if (response.statusCode() == 401) {
@@ -211,25 +364,6 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
         });
 
         return this;
-    }
-
-    private String buildQueryWithContext(String userQuery) {
-        if (professionalDetails != null && !professionalDetails.isEmpty()) {
-            // Format: Professional context + instruction to act as doppelganger + user question
-            return String.format(
-                "You are a professional doppelganger chatbot. Answer questions based on the following professional profile:\n\n" +
-                "%s\n\n" +
-                "Instructions: Answer questions as if you are this person. Use only the information provided above. " +
-                "If asked about something not in the profile, politely say you don't have that information.\n\n" +
-                "Question: %s\n\n" +
-                "Answer:",
-                professionalDetails.length() > 2000 ? professionalDetails.substring(0, 2000) + "..." : professionalDetails,
-                userQuery
-            );
-        } else {
-            // No professional details, just answer normally
-            return userQuery;
-        }
     }
 
     private String escapeJson(String text) {

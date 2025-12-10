@@ -9,4 +9,3 @@
 mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
     -Dexec.args="2551 8080 hf_YOUR_HUGGINGFACE_API_KEY google/flan-t5-large huggingface" \
     -Dakka.remote.artery.canonical.port=2551
-

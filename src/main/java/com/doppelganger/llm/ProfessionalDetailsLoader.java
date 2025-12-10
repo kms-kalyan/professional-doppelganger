@@ -29,8 +29,11 @@ public class ProfessionalDetailsLoader {
             return null;
         }
     }
-
-    private static JsonNode loadJson(String jsonPath) {
+    
+    /**
+     * Loads JSON and returns the JsonNode (for system prompt formatting)
+     */
+    public static JsonNode loadJson(String jsonPath) {
         try {
             // Try multiple locations
             java.util.List<String> pathsToTry = java.util.List.of(
@@ -72,108 +75,143 @@ public class ProfessionalDetailsLoader {
         }
     }
 
-    private static String formatProfessionalDetails(JsonNode json) {
+    /**
+     * Formats professional details as a human-readable system prompt
+     */
+    public static String formatAsSystemPrompt(JsonNode json) {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("PROFESSIONAL PROFILE\n");
-        sb.append("===================\n\n");
+        String name = json.has("name") ? json.path("name").asText() : "the professional";
+        
+        sb.append("You are a professional AI version of ").append(name).append(".\n\n");
+        sb.append("Your responses MUST strictly align with the following profile:\n\n");
         
         if (json.has("name")) {
             sb.append("Name: ").append(json.path("name").asText()).append("\n");
         }
         if (json.has("title")) {
-            sb.append("Title: ").append(json.path("title").asText()).append("\n");
+            sb.append("Professional Title: ").append(json.path("title").asText()).append("\n");
         }
         if (json.has("email")) {
             sb.append("Email: ").append(json.path("email").asText()).append("\n");
         }
         if (json.has("summary")) {
-            sb.append("\nSummary:\n").append(json.path("summary").asText()).append("\n");
+            sb.append("\nProfessional Summary: ").append(json.path("summary").asText()).append("\n");
         }
-        
+        if (json.has("phone")) {
+            sb.append("Phone: ").append(json.path("phone").asText()).append("\n");
+        }
+        if (json.has("address")) {
+            sb.append("Address: ").append(json.path("address").asText()).append("\n");
+        }
+        if (json.has("website")) {
+            sb.append("Website: ").append(json.path("website").asText()).append("\n");
+        }
+        if (json.has("linkedin")) {
+            sb.append("LinkedIn: ").append(json.path("linkedin").asText()).append("\n");
+        }
+        if (json.has("github")) {
+            sb.append("GitHub: ").append(json.path("github").asText()).append("\n");
+        }
         if (json.has("skills") && json.path("skills").isArray()) {
-            sb.append("\nSkills:\n");
-            json.path("skills").forEach(skill -> 
-                sb.append("  - ").append(skill.asText()).append("\n"));
+            sb.append("\nTechnical Skills: ");
+            java.util.List<String> skills = new java.util.ArrayList<>();
+            json.path("skills").forEach(skill -> skills.add(skill.asText()));
+            sb.append(String.join(", ", skills)).append("\n");
         }
         
         if (json.has("experience") && json.path("experience").isArray()) {
-            sb.append("\nProfessional Experience:\n");
-            json.path("experience").forEach(exp -> {
-                if (exp.has("company")) sb.append("Company: ").append(exp.path("company").asText()).append("\n");
-                if (exp.has("position")) sb.append("Position: ").append(exp.path("position").asText()).append("\n");
-                if (exp.has("duration")) sb.append("Duration: ").append(exp.path("duration").asText()).append("\n");
-                if (exp.has("description")) sb.append("Description: ").append(exp.path("description").asText()).append("\n");
+            sb.append("\nWork Experience:\n");
+            int expNum = 1;
+            for (com.fasterxml.jackson.databind.JsonNode exp : json.path("experience")) {
+                sb.append(expNum).append(". ");
+                if (exp.has("position")) sb.append(exp.path("position").asText());
+                if (exp.has("company")) sb.append(" at ").append(exp.path("company").asText());
+                if (exp.has("duration")) sb.append(" (").append(exp.path("duration").asText()).append(")");
                 sb.append("\n");
-            });
+                if (exp.has("description")) sb.append("   ").append(exp.path("description").asText()).append("\n");
+                expNum++;
+            }
         }
         
         if (json.has("education") && json.path("education").isArray()) {
             sb.append("\nEducation:\n");
-            json.path("education").forEach(edu -> {
-                if (edu.has("institution")) sb.append("Institution: ").append(edu.path("institution").asText()).append("\n");
-                if (edu.has("degree")) sb.append("Degree: ").append(edu.path("degree").asText()).append("\n");
+            for (com.fasterxml.jackson.databind.JsonNode edu : json.path("education")) {
+                if (edu.has("degree")) sb.append("- ").append(edu.path("degree").asText());
+                if (edu.has("institution")) sb.append(" from ").append(edu.path("institution").asText());
                 if (edu.has("year")) {
-                    sb.append("Year: ").append(edu.path("year").asText()).append("\n");
+                    sb.append(" (").append(edu.path("year").asText()).append(")");
                 } else if (edu.has("graduation_start_date") || edu.has("graduation_end_date")) {
                     String startDate = edu.has("graduation_start_date") ? edu.path("graduation_start_date").asText() : "";
                     String endDate = edu.has("graduation_end_date") ? edu.path("graduation_end_date").asText() : "";
                     if (!startDate.isEmpty() || !endDate.isEmpty()) {
-                        sb.append("Duration: ");
+                        sb.append(" (");
                         if (!startDate.isEmpty()) sb.append(startDate);
                         if (!startDate.isEmpty() && !endDate.isEmpty()) sb.append(" - ");
                         if (!endDate.isEmpty()) sb.append(endDate);
-                        sb.append("\n");
+                        sb.append(")");
                     }
                 }
                 sb.append("\n");
-            });
+            }
         }
         
         if (json.has("projects") && json.path("projects").isArray()) {
-            sb.append("\nProjects:\n");
-            json.path("projects").forEach(project -> {
-                if (project.has("name")) sb.append("Name: ").append(project.path("name").asText()).append("\n");
-                if (project.has("description")) sb.append("Description: ").append(project.path("description").asText()).append("\n");
-                if (project.has("technologies")) {
-                    sb.append("Technologies: ");
-                    project.path("technologies").forEach(tech -> sb.append(tech.asText()).append(", "));
-                    sb.append("\n");
-                }
+            sb.append("\nNotable Projects:\n");
+            int projNum = 1;
+            for (com.fasterxml.jackson.databind.JsonNode project : json.path("projects")) {
+                sb.append(projNum).append(". ");
+                if (project.has("name")) sb.append(project.path("name").asText());
                 sb.append("\n");
-            });
+                if (project.has("description")) sb.append("   ").append(project.path("description").asText()).append("\n");
+                if (project.has("technologies") && project.path("technologies").isArray()) {
+                    java.util.List<String> techs = new java.util.ArrayList<>();
+                    project.path("technologies").forEach(tech -> techs.add(tech.asText()));
+                    sb.append("   Technologies: ").append(String.join(", ", techs)).append("\n");
+                }
+                projNum++;
+            }
         }
         
-        if (json.has("certifications") && json.path("certifications").isArray()) {
-            sb.append("\nCertifications:\n");
-            json.path("certifications").forEach(cert -> 
-                sb.append("  - ").append(cert.asText()).append("\n"));
+        if (json.has("certifications") && json.path("certifications").isArray() && json.path("certifications").size() > 0) {
+            sb.append("\nCertifications: ");
+            java.util.List<String> certs = new java.util.ArrayList<>();
+            json.path("certifications").forEach(cert -> certs.add(cert.asText()));
+            sb.append(String.join(", ", certs)).append("\n");
         }
         
         if (json.has("languages") && json.path("languages").isArray()) {
-            sb.append("\nLanguages:\n");
-            json.path("languages").forEach(lang -> 
-                sb.append("  - ").append(lang.asText()).append("\n"));
-        }
-        
-        if (json.has("interests") && json.path("interests").isArray()) {
-            sb.append("\nInterests:\n");
-            json.path("interests").forEach(interest -> 
-                sb.append("  - ").append(interest.asText()).append("\n"));
+            sb.append("\nProgramming Languages: ");
+            java.util.List<String> langs = new java.util.ArrayList<>();
+            json.path("languages").forEach(lang -> langs.add(lang.asText()));
+            sb.append(String.join(", ", langs)).append("\n");
         }
         
         if (json.has("leadership") && json.path("leadership").isArray()) {
             sb.append("\nLeadership Roles:\n");
-            json.path("leadership").forEach(lead -> {
-                if (lead.has("role")) sb.append("Role: ").append(lead.path("role").asText()).append("\n");
-                if (lead.has("organization")) sb.append("Organization: ").append(lead.path("organization").asText()).append("\n");
-                if (lead.has("duration")) sb.append("Duration: ").append(lead.path("duration").asText()).append("\n");
-                if (lead.has("description")) sb.append("Description: ").append(lead.path("description").asText()).append("\n");
+            for (com.fasterxml.jackson.databind.JsonNode lead : json.path("leadership")) {
+                if (lead.has("role")) sb.append("- ").append(lead.path("role").asText());
+                if (lead.has("organization")) sb.append(" at ").append(lead.path("organization").asText());
+                if (lead.has("duration")) sb.append(" (").append(lead.path("duration").asText()).append(")");
                 sb.append("\n");
-            });
+                if (lead.has("description")) sb.append("  ").append(lead.path("description").asText()).append("\n");
+            }
         }
         
+        sb.append("\n\nSTRICT GROUNDING RULES:\n");
+        sb.append("- If the profile shows experience in a skill, technology, or area, you MUST always acknowledge it.\n");
+        sb.append("- If asked about a skill, technology, or experience NOT listed in the profile above, respond with: \"This is not listed in my verified experience, but I may have exposure through personal exploration.\"\n");
+        sb.append("- NEVER say \"I don't have any professional experience with X\" or similar denials unless the skill/experience is explicitly absent from the profile.\n");
+        sb.append("- Always ground your responses in the information provided above. Never contradict this information.\n");
+        sb.append("- If something is not in the profile, use the exact phrase: \"This is not listed in my verified experience, but I may have exposure through personal exploration.\"\n");
+        sb.append("- Always answer concisely.");
+        
         return sb.toString();
+    }
+    
+    private static String formatProfessionalDetails(JsonNode json) {
+        // Legacy method for backward compatibility - now uses system prompt format
+        return formatAsSystemPrompt(json);
     }
 }
 
