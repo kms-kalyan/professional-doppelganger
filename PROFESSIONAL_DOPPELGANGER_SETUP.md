@@ -104,7 +104,7 @@ To use a different JSON file:
 ```bash
 mvn exec:java -Dprofessional.details.path="/path/to/your/details.json" \
     -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2551 8080 hf_YOUR_API_KEY google/flan-t5-large"
+    -Dexec.args="2552 8081 sk_YOUR_API_KEY gpt-3.5-turbo openai"
 ```
 
 ## JSON Schema
