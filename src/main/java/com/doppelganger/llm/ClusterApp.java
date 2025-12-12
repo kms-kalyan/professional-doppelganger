@@ -7,7 +7,7 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.cluster.typed.Cluster;
 import com.doppelganger.llm.actors.HttpServerActor;
 import com.doppelganger.llm.actors.LLMActorGroq;
-import com.doppelganger.llm.actors.LLMActorHuggingFace;
+import com.doppelganger.llm.actors.LLMActorOpenAI;
 import com.doppelganger.llm.actors.LoggingActor;
 import com.doppelganger.llm.actors.MemoryActor;
 import com.doppelganger.llm.actors.RoutingActor;
@@ -27,12 +27,13 @@ public class ClusterApp {
     public static void main(String[] args) {
         if (args.length < 3) {
             System.err.println("Usage: ClusterApp <port> <httpPort> <apiKey> [model] [provider]");
-            System.err.println("Providers: groq (default, recommended), huggingface");
+            System.err.println("Providers: groq (default, recommended), openai");
             System.err.println("Example (Groq - FREE & FAST): ClusterApp 2551 8080 gsk_... llama-3.1-8b-instant groq");
-            System.err.println("Example (HuggingFace): ClusterApp 2551 8080 hf_... google/flan-t5-large huggingface");
+            System.err.println("Example (OpenAI): ClusterApp 2551 8080 sk-... gpt-3.5-turbo openai");
             System.err.println("Get Groq API key: https://console.groq.com/ (FREE, very fast)");
-            System.err.println("Get HuggingFace API key: https://huggingface.co/settings/tokens");
+            System.err.println("Get OpenAI API key: https://platform.openai.com/api-keys");
             System.err.println("Popular Groq models: llama-3.1-8b-instant, mixtral-8x7b-32768, gemma-7b-it");
+            System.err.println("Popular OpenAI models: gpt-3.5-turbo, gpt-4, gpt-4-turbo");
             System.exit(1);
         }
 
@@ -76,10 +77,10 @@ public class ClusterApp {
                     "LLMActor"
                 );
             } else {
-                log.info("Using HuggingFace LLM provider with model: {}", model);
-                // HuggingFace actor also loads profile internally
+                log.info("Using OpenAI LLM provider with model: {}", model);
+                // OpenAI actor also loads profile internally
                 llmActor = context.spawn(
-                    LLMActorHuggingFace.create(apiKey, model),
+                    LLMActorOpenAI.create(apiKey, model),
                     "LLMActor"
                 );
             }

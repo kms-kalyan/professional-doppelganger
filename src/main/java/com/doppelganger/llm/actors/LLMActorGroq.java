@@ -227,7 +227,7 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
                 // Build JSON request body for Groq (OpenAI-compatible format)
                 // temperature = 0.2, max_tokens = 250 as specified
                 String requestBody = String.format(
-                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":250,\"temperature\":0.2}",
+                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":250,\"temperature\":0.1}",
                     model,
                     messagesJson.toString()
                 );

@@ -1,6 +1,6 @@
 # LLM Akka Cluster
 
-A distributed Akka Cluster application that integrates with HuggingFace's free Inference API to process user queries through a web interface.
+A distributed Akka Cluster application that integrates with OpenAI API to process user queries through a web interface.
 
 ## Features
 
@@ -10,7 +10,7 @@ A distributed Akka Cluster application that integrates with HuggingFace's free I
   - **Tell**: Fire-and-forget messages (logging)
   - **Ask**: Request-response pattern (LLM queries)
   - **Forward**: Message forwarding with original sender context
-- **HuggingFace Integration**: Processes queries using free open-source models from HuggingFace
+- **OpenAI Integration**: Processes queries using OpenAI models
 - **Web Interface**: Modern HTML/JavaScript frontend
 
 ## Architecture
@@ -22,7 +22,7 @@ A distributed Akka Cluster application that integrates with HuggingFace's free I
 3. RoutingActor:
    - Uses **tell** pattern to send log message to LoggingActor (fire-and-forget)
    - Uses message adapter to request response from LLMActor
-   - LLMActor processes query via HuggingFace API and responds
+   - LLMActor processes query via OpenAI API and responds
    - RoutingActor uses **tell** to forward log message to LoggingActor (demonstrates forward pattern)
    - RoutingActor sends QueryResponse back to HTTP Server
 4. HTTP Server returns JSON response to web interface
@@ -38,23 +38,21 @@ A distributed Akka Cluster application that integrates with HuggingFace's free I
 
 - Java 17 or higher
 - Maven 3.6+
-- HuggingFace API key (free - get from https://huggingface.co/settings/tokens)
-  - You can also use "none" as API key for public models (rate limited)
+- OpenAI API key (get from https://platform.openai.com/api-keys)
 
 ## Setup
 
 1. **Clone the repository** (if applicable)
 
-2. **Get and configure HuggingFace API key**:
-   - **Get free API key**: See detailed instructions in `HUGGINGFACE_API_KEY_SETUP.md`
+2. **Get and configure OpenAI API key**:
+   - **Get API key**: See detailed instructions in `OPENAI_API_KEY_SETUP.md`
    - Quick steps:
-     1. Go to https://huggingface.co/join and create a free account
-     2. Go to https://huggingface.co/settings/tokens
-     3. Click "New token" → Name it → Select "Read" → Generate
-     4. Copy the token (starts with `hf_`)
+     1. Go to https://platform.openai.com/ and create an account
+     2. Go to https://platform.openai.com/api-keys
+     3. Click "Create new secret key" → Name it → Generate
+     4. Copy the token (starts with `sk-`)
    - Edit `scripts/start-node1.sh` and `scripts/start-node2.sh`
-   - Replace `hf_YOUR_API_KEY` with your actual token
-   - Or use `none` for public models (rate limited, not recommended)
+   - Replace `sk_YOUR_API_KEY` with your actual token
 
 3. **Make scripts executable**:
    ```bash
@@ -87,13 +85,13 @@ This starts:
 **Node 1:**
 ```bash
 mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2551 8080 hf_YOUR_API_KEY google/flan-t5-large"
+    -Dexec.args="2551 8080 sk_YOUR_API_KEY gpt-3.5-turbo openai"
 ```
 
 **Node 2:**
 ```bash
 mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2552 8081 hf_YOUR_API_KEY google/flan-t5-large"
+    -Dexec.args="2552 8081 sk_YOUR_API_KEY gpt-3.5-turbo openai"
 ```
 
 ## Using the Web Interface
@@ -159,14 +157,18 @@ llm-akka-cluster/
 
 ## Requirements Demonstrated
 
-✅ **Akka Cluster**: 2+ nodes running locally  
-✅ **Service Actors**: RoutingActor, LLMActor, LoggingActor (2-3 per node)  
-✅ **Tell Pattern**: LoggingActor receives fire-and-forget messages  
-✅ **Ask Pattern**: HTTP Server → RoutingActor → LLMActor (request-response)  
-✅ **Forward Pattern**: Messages forwarded to LoggingActor with original sender context  
-✅ **LLM Integration**: OpenAI API integration via LLMActor  
+This project fully implements all required features:
+
+✅ **Akka Cluster**: 2+ nodes running locally (Typed API)  
+✅ **Service Actors**: 5 actors per node (RoutingActor, LLMActor, LoggingActor, MemoryActor, HttpServerActor)  
+✅ **Tell Pattern**: Fire-and-forget messages demonstrated multiple times (RoutingActor → LoggingActor, RoutingActor → MemoryActor)  
+✅ **Ask Pattern**: Request-response pattern demonstrated multiple times (HttpServerActor → RoutingActor, RoutingActor → LLMActor, RoutingActor → MemoryActor)  
+✅ **Forward Pattern**: Messages forwarded to LoggingActor with original sender context preserved  
+✅ **LLM Integration**: OpenAI API integration via LLMActor (Groq also supported)  
 ✅ **Web Interface**: HTML/JavaScript frontend  
 ✅ **Message Flow**: Complete flow from user query to LLM response
+
+**For detailed requirements compliance documentation, see [REQUIREMENTS_COMPLIANCE.md](REQUIREMENTS_COMPLIANCE.md)**
 
 ## Configuration
 
@@ -177,7 +179,7 @@ Cluster configuration is in `src/main/resources/application.conf`:
 ## Troubleshooting
 
 - **Cluster not forming**: Ensure both nodes are started and can communicate
-- **API errors**: Verify your OpenAI API key is correct and has credits
+- **API errors**: Verify your OpenAI API key is correct and has credits/balance
 - **Port conflicts**: Change ports in startup scripts if 8080/8081 or 2551/2552 are in use
 
 ## License

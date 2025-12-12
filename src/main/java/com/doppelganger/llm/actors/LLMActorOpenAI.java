@@ -5,6 +5,7 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import com.doppelganger.llm.ProfessionalDetailsLoader;
 import com.doppelganger.llm.messages.ChatMessage;
 import com.doppelganger.llm.messages.LLMRequest;
 import com.doppelganger.llm.messages.LLMResponse;
@@ -16,24 +17,23 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import com.doppelganger.llm.ProfessionalDetailsLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * Actor that handles communication with HuggingFace Inference API (Free alternative)
+ * Actor that handles communication with OpenAI API
  * Demonstrates: ask pattern (receives requests and sends responses)
  */
-public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
-    private static final Logger log = LoggerFactory.getLogger(LLMActorHuggingFace.class);
+public class LLMActorOpenAI extends AbstractBehavior<LLMRequest> {
+    private static final Logger log = LoggerFactory.getLogger(LLMActorOpenAI.class);
     private final String apiKey;
     private final String model;
     private final String systemPrompt; // Formatted system prompt from professional profile
@@ -41,7 +41,7 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    private LLMActorHuggingFace(ActorContext<LLMRequest> context, String apiKey, String model) {
+    private LLMActorOpenAI(ActorContext<LLMRequest> context, String apiKey, String model) {
         super(context);
         this.apiKey = apiKey;
         this.model = model;
@@ -58,7 +58,7 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
         
-        log.info("LLMActorHuggingFace started on node: {} with model: {}", 
+        log.info("LLMActorOpenAI started on node: {} with model: {}", 
             context.getSelf().path().address(), model);
         if (this.systemPrompt != null && !this.systemPrompt.isEmpty()) {
             log.info("System prompt loaded: {} characters", this.systemPrompt.length());
@@ -66,7 +66,7 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
     }
 
     public static Behavior<LLMRequest> create(String apiKey, String model) {
-        return Behaviors.setup(context -> new LLMActorHuggingFace(context, apiKey, model));
+        return Behaviors.setup(context -> new LLMActorOpenAI(context, apiKey, model));
     }
     
     /**
@@ -193,46 +193,52 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
     }
 
     private Behavior<LLMRequest> handleLLMRequest(LLMRequest request) {
-        log.info("LLMActorHuggingFace received request: {}", request.getQuery());
+        log.info("LLMActorOpenAI received request: {}", request.getQuery());
         
-        // Create HTTP request - use router.huggingface.co (required, api-inference is deprecated)
-        // Router endpoint format: https://router.huggingface.co/models/{model}
-        final String apiUrl = "https://router.huggingface.co/models/" + model;
-        log.info("Calling HuggingFace API: {} (model: {})", apiUrl, model);
+        // Create HTTP request - OpenAI Chat Completions API
+        final String apiUrl = "https://api.openai.com/v1/chat/completions";
+        log.info("Calling OpenAI API: {} (model: {})", apiUrl, model);
         
         // Process the request asynchronously
         getContext().getExecutionContext().execute(() -> {
             try {
-                // Build query with professional details and conversation history
+                // Get conversation history from request
                 List<ChatMessage> history = request.getHistory() != null ? request.getHistory() : new ArrayList<>();
                 
-                // Build context with history
-                String queryWithContext = buildQueryWithContext(request.getQuery(), history);
+                // Build messages array with conversation history
+                StringBuilder messagesJson = new StringBuilder("[");
                 
-                // Build JSON request body for HuggingFace Inference API
-                // For text generation models, use "inputs" as a string
-                String escapedQuery = escapeJson(queryWithContext);
+                // Add system prompt as FIRST element (required format)
+                if (systemPrompt != null && !systemPrompt.isEmpty()) {
+                    messagesJson.append(String.format("{\"role\":\"system\",\"content\":\"%s\"},", escapeJson(systemPrompt)));
+                }
+                
+                // Add conversation history
+                for (ChatMessage msg : history) {
+                    messagesJson.append(String.format("{\"role\":\"%s\",\"content\":\"%s\"},", 
+                        msg.getRole(), escapeJson(msg.getContent())));
+                }
+                
+                // Add current user query
+                String userQuery = request.getQuery();
+                messagesJson.append(String.format("{\"role\":\"user\",\"content\":\"%s\"}", escapeJson(userQuery)));
+                messagesJson.append("]");
+                
+                // Build JSON request body for OpenAI
                 String requestBody = String.format(
-                    "{\"inputs\":\"%s\",\"parameters\":{\"max_new_tokens\":500,\"temperature\":0.7,\"return_full_text\":false}}",
-                    escapedQuery
+                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":250,\"temperature\":0.1}",
+                    model,
+                    messagesJson.toString()
                 );
-                log.debug("Request body length: {} characters", requestBody.length());
+                log.debug("Request body length: {} characters, history size: {}", requestBody.length(), history.size());
                 
-                HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                HttpRequest httpRequest = HttpRequest.newBuilder()
                         .uri(URI.create(apiUrl))
+                        .header("Authorization", "Bearer " + apiKey)
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                        .timeout(Duration.ofSeconds(60)); // HuggingFace can be slower
-
-                // Add authorization header if API key is provided
-                if (apiKey != null && !apiKey.isEmpty() && !apiKey.equals("none")) {
-                    requestBuilder.header("Authorization", "Bearer " + apiKey);
-                    log.debug("Using API key: provided");
-                } else {
-                    log.debug("No API key provided (may be rate limited)");
-                }
-
-                HttpRequest httpRequest = requestBuilder.build();
+                        .timeout(Duration.ofSeconds(60))
+                        .build();
 
                 // Send request and get response
                 CompletableFuture<HttpResponse<String>> responseFuture = 
@@ -243,105 +249,108 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
                         if (response.statusCode() == 200) {
                             JsonNode jsonResponse = objectMapper.readTree(response.body());
                             
-                            // HuggingFace returns different formats depending on the model
-                            String content;
-                            if (jsonResponse.isArray() && jsonResponse.size() > 0) {
-                                // Some models return array with generated_text
-                                JsonNode firstItem = jsonResponse.get(0);
-                                if (firstItem.has("generated_text")) {
-                                    content = firstItem.path("generated_text").asText();
-                                } else if (firstItem.has("summary_text")) {
-                                    content = firstItem.path("summary_text").asText();
-                                } else {
-                                    // Try to get text from any text field
-                                    content = firstItem.asText();
-                                }
-                            } else if (jsonResponse.has("generated_text")) {
-                                content = jsonResponse.path("generated_text").asText();
-                            } else if (jsonResponse.has("summary_text")) {
-                                content = jsonResponse.path("summary_text").asText();
-                            } else {
-                                // Fallback: get first text value
-                                content = jsonResponse.toString();
-                            }
+                            // OpenAI returns standard format
+                            String content = jsonResponse
+                                    .path("choices")
+                                    .get(0)
+                                    .path("message")
+                                    .path("content")
+                                    .asText();
 
                             if (content == null || content.isEmpty()) {
-                                throw new Exception("Empty response from HuggingFace API");
+                                throw new Exception("Empty response from OpenAI API");
                             }
 
-                            log.info("LLMActorHuggingFace generated response for session: {}", request.getSessionId());
+                            log.info("LLMActorOpenAI generated response for session: {} (history size: {})", 
+                                request.getSessionId(), request.getHistory() != null ? request.getHistory().size() : 0);
                             request.getReplyTo().tell(LLMResponse.success(content, request.getSessionId()));
                             
                         } else if (response.statusCode() == 401) {
-                            // Unauthorized - API key issue
-                            String errorMsg = "HuggingFace API authentication failed. Please:\n" +
-                                "1. Get a free API key from https://huggingface.co/settings/tokens\n" +
-                                "2. Update your startup script with: hf_YOUR_API_KEY\n" +
-                                "3. The router endpoint requires a valid API key (cannot use 'none')";
-                            log.error("HuggingFace API authentication failed (401)");
+                            String errorMsg = "OpenAI API authentication failed. Please:\n" +
+                                "1. Get an API key from https://platform.openai.com/api-keys\n" +
+                                "2. Update your startup script with your OpenAI API key\n" +
+                                "3. Ensure you have credits in your OpenAI account";
+                            log.error("OpenAI API authentication failed (401)");
                             request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
                             
-                        } else if (response.statusCode() == 404) {
-                            // Model not found
-                            String errorMsg = String.format(
-                                "Model '%s' not found (404). This model may not be available on the HuggingFace Inference API.\n\n" +
-                                "Please try a different model. Update your startup script:\n" +
-                                "Example: -Dexec.args=\"2551 8080 hf_YOUR_API_KEY microsoft/DialoGPT-small\"\n\n" +
-                                "Other models to try:\n" +
-                                "- microsoft/DialoGPT-small\n" +
-                                "- facebook/blenderbot-400M-distill\n" +
-                                "- google/flan-t5-base",
-                                model);
-                            log.error("HuggingFace model not found (404): {}", model);
-                            request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
-                            
-                        } else if (response.statusCode() == 503) {
-                            // Model is loading
-                            String errorMsg = "HuggingFace model is loading. Please wait a moment and try again.";
-                            log.warn("HuggingFace model loading: {}", model);
-                            request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
-                            
-                        } else {
-                            String errorMsg = "HuggingFace API error: HTTP " + response.statusCode();
+                        } else if (response.statusCode() == 400) {
+                            // Bad request - might be model deprecation or invalid model
+                            String errorMsg = "OpenAI API error (400). ";
                             if (response.body() != null && !response.body().isEmpty()) {
                                 try {
                                     JsonNode errorJson = objectMapper.readTree(response.body());
                                     if (errorJson.has("error")) {
-                                        errorMsg = errorJson.path("error").asText();
-                                    } else if (errorJson.has("message")) {
-                                        errorMsg = errorJson.path("message").asText();
+                                        JsonNode error = errorJson.path("error");
+                                        if (error.has("message")) {
+                                            String message = error.path("message").asText();
+                                            errorMsg += message;
+                                            if (message.contains("decommissioned") || message.contains("deprecated")) {
+                                                errorMsg += "\n\nTry using: gpt-4, gpt-3.5-turbo, or gpt-4-turbo";
+                                            }
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    errorMsg += "Invalid model or request format.";
+                                }
+                            }
+                            log.error("OpenAI API error (400): {}", errorMsg);
+                            request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
+                            
+                        } else if (response.statusCode() == 429) {
+                            // Rate limit exceeded - check if there's retry-after header
+                            String retryAfter = response.headers().firstValue("retry-after").orElse(null);
+                            String errorMsg = "OpenAI API rate limit exceeded. ";
+                            
+                            if (retryAfter != null) {
+                                try {
+                                    int seconds = Integer.parseInt(retryAfter);
+                                    errorMsg += String.format("Please wait %d seconds and try again. ", seconds);
+                                } catch (NumberFormatException e) {
+                                    errorMsg += "Please wait a moment and try again. ";
+                                }
+                            } else {
+                                errorMsg += "Please wait 10-30 seconds and try again. ";
+                            }
+                            
+                            errorMsg += "\n\nNote: OpenAI has rate limits based on your tier. " +
+                                       "For higher limits, consider upgrading at https://platform.openai.com/";
+                            
+                            log.warn("OpenAI API rate limit (429) - retry after: {}", retryAfter);
+                            request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
+                            
+                        } else {
+                            String errorMsg = "OpenAI API error: HTTP " + response.statusCode();
+                            if (response.body() != null && !response.body().isEmpty()) {
+                                try {
+                                    JsonNode errorJson = objectMapper.readTree(response.body());
+                                    if (errorJson.has("error")) {
+                                        JsonNode error = errorJson.path("error");
+                                        if (error.has("message")) {
+                                            errorMsg = error.path("message").asText();
+                                        }
                                     }
                                 } catch (Exception e) {
                                     // Use default error message
                                 }
                             }
-                            log.error("HuggingFace API error: {}", errorMsg);
+                            log.error("OpenAI API error: {}", errorMsg);
                             request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
                         }
                     } catch (Exception e) {
-                        log.error("Error parsing HuggingFace response", e);
+                        log.error("Error parsing OpenAI response", e);
                         request.getReplyTo().tell(LLMResponse.failure(
                             "Error parsing response: " + e.getMessage(), request.getSessionId()));
                     }
                 }).exceptionally(throwable -> {
                     Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
-                    log.error("Error calling HuggingFace API: {} - URL: {}", cause.getMessage(), apiUrl, cause);
+                    log.error("Error calling OpenAI API: {} - URL: {}", cause.getMessage(), apiUrl, cause);
                     String errorMsg;
                     if (cause instanceof java.net.ConnectException) {
-                        errorMsg = String.format(
-                            "Cannot connect to HuggingFace API at %s. Please check:\n" +
-                            "1. Your internet connection\n" +
-                            "2. Firewall/proxy settings\n" +
-                            "3. The model name is correct: %s",
-                            apiUrl, model);
+                        errorMsg = "Cannot connect to OpenAI API. Please check your internet connection.";
                     } else if (cause instanceof java.net.UnknownHostException) {
-                        errorMsg = "Cannot resolve HuggingFace API hostname. Please check your internet connection and DNS settings.";
-                    } else if (cause instanceof javax.net.ssl.SSLException) {
-                        errorMsg = "SSL/TLS error connecting to HuggingFace API. Please check your network settings.";
-                    } else if (cause instanceof java.net.SocketTimeoutException) {
-                        errorMsg = "Connection timeout. The HuggingFace API may be slow or unavailable. Please try again.";
+                        errorMsg = "Cannot resolve OpenAI API hostname. Please check your internet connection.";
                     } else {
-                        errorMsg = "Error calling HuggingFace API: " + cause.getMessage() + " (URL: " + apiUrl + ")";
+                        errorMsg = "Error calling OpenAI API: " + cause.getMessage();
                     }
                     request.getReplyTo().tell(LLMResponse.failure(errorMsg, request.getSessionId()));
                     return null;
@@ -355,48 +364,6 @@ public class LLMActorHuggingFace extends AbstractBehavior<LLMRequest> {
         });
 
         return this;
-    }
-
-    private String buildQueryWithContext(String userQuery, java.util.List<ChatMessage> history) {
-        // Check if user explicitly asks for elaboration
-        String lowerQuery = userQuery.toLowerCase();
-        boolean wantsElaboration = lowerQuery.contains("elaborate") || 
-                                 lowerQuery.contains("explain in detail") ||
-                                 lowerQuery.contains("tell me more") ||
-                                 lowerQuery.contains("describe") ||
-                                 lowerQuery.contains("detailed");
-        
-        String lengthInstruction = wantsElaboration 
-            ? "Provide a detailed and comprehensive answer." 
-            : "Keep your answer brief and concise (2-3 sentences maximum). Only elaborate if the question specifically asks for details.";
-        
-        // Build conversation context if history exists
-        StringBuilder contextBuilder = new StringBuilder();
-        if (!history.isEmpty()) {
-            contextBuilder.append("Previous conversation:\n");
-            for (ChatMessage msg : history) {
-                contextBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-            }
-            contextBuilder.append("\n");
-        }
-        
-        // Format: System prompt + conversation history + instruction + user question
-        if (systemPrompt != null && !systemPrompt.isEmpty()) {
-            return String.format(
-                "%s\n\n" +
-                "%s" +
-                "Additional Instructions: %s\n\n" +
-                "Question: %s\n\n" +
-                "Answer:",
-                systemPrompt,
-                contextBuilder.toString(),
-                lengthInstruction,
-                userQuery
-            );
-        } else {
-            // No system prompt, just use conversation history
-            return contextBuilder.toString() + userQuery;
-        }
     }
 
     private String escapeJson(String text) {

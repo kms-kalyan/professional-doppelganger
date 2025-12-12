@@ -2,44 +2,13 @@
 
 This guide shows you how to use free LLM alternatives instead of OpenAI.
 
-**The application supports 3 providers:**
-- **OpenAI** (default, requires paid API)
-- **Groq** (FREE - Fast inference)
-- **HuggingFace** (FREE - Many open-source models)
+**The application supports 2 providers:**
+- **Groq** (FREE - Fast inference, recommended)
+- **OpenAI** (requires paid API)
 
 You choose which provider to use when starting the application.
 
-## Option 1: HuggingFace (Recommended - Free & Open Source)
-
-HuggingFace offers free access to many open-source models through their Inference API.
-
-### Steps:
-
-1. **Get a free API key (optional but recommended):**
-   - Go to https://huggingface.co/settings/tokens
-   - Create a free account
-   - Generate a new token (read access is enough)
-   - Note: You can use "none" as API key for public models, but you'll be rate-limited
-
-2. **Start the application with HuggingFace:**
-   ```bash
-   ./scripts/start-node1-huggingface.sh
-   ```
-   
-   Or manually:
-   ```bash
-   mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-       -Dexec.args="2551 8080 hf_YOUR_API_KEY google/flan-t5-large huggingface"
-   ```
-
-3. **Popular free HuggingFace models:**
-   - `google/flan-t5-large` - Good for general tasks
-   - `microsoft/DialoGPT-medium` - Conversational AI
-   - `facebook/blenderbot-400M-distill` - Chatbot
-   - `google/flan-t5-base` - Smaller, faster
-   - `tiiuae/falcon-7b-instruct` - Instruction following
-
-## Option 2: Groq (Fast & Free)
+## Option 1: Groq (Fast & Free - Recommended)
 
 ### Steps:
 
@@ -65,7 +34,7 @@ HuggingFace offers free access to many open-source models through their Inferenc
    - `mixtral-8x7b-32768` - Mixture of experts
    - `gemma-7b-it` - Google's Gemma model
 
-## Option 3: Ollama (Local - Completely Free)
+## Option 2: Ollama (Local - Completely Free)
 
 Run models locally on your machine.
 
@@ -91,7 +60,7 @@ Run models locally on your machine.
 
 4. **Create LLMActorOllama.java** that calls `http://localhost:11434/api/generate`
 
-## Option 4: OpenAI (Default - Requires Paid API)
+## Option 3: OpenAI (Requires Paid API)
 
 OpenAI does have a free tier, but it's limited:
 - Limited requests per day
@@ -102,22 +71,21 @@ OpenAI does have a free tier, but it's limited:
 
 | Provider | Free Tier | Speed | Setup Difficulty | Models Available |
 |----------|-----------|-------|------------------|------------------|
-| **HuggingFace** | ✅ Free (rate limited) | 🐢 Medium | Easy | Thousands of models |
 | **Groq** | ✅ Generous | ⚡ Very Fast | Easy | Limited selection |
 | **Ollama** | ✅ Unlimited | ⚡ Fast (local) | Medium | Many models (local) |
 | **OpenAI** | ⚠️ Very Limited | 🐢 Medium | Easy | GPT models only |
 
-## Recommended: HuggingFace
+## Recommended: Groq
 
-For your project, I recommend **HuggingFace** because:
-- ✅ Completely free (with rate limits)
-- ✅ Thousands of open-source models to choose from
-- ✅ No billing required
-- ✅ Easy to switch between models
+For your project, I recommend **Groq** because:
+- ✅ Generous free tier
+- ✅ Very fast inference
+- ✅ Easy setup
+- ✅ No billing required for free tier
 - ✅ Great for learning and experimentation
 
-**To use HuggingFace:**
-1. Get a free API key from https://huggingface.co/settings/tokens (or use "none")
-2. Run: `./scripts/start-node1-huggingface.sh`
-3. Or manually specify `huggingface` as the provider in the command line
+**To use Groq:**
+1. Get a free API key from https://console.groq.com/
+2. Run: `./scripts/start-node1.sh`
+3. Or manually specify `groq` as the provider in the command line
 
