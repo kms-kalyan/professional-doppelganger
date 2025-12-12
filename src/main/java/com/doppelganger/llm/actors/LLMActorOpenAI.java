@@ -182,7 +182,7 @@ public class LLMActorOpenAI extends AbstractBehavior<LLMRequest> {
         String basePrompt = ProfessionalDetailsLoader.formatAsSystemPrompt(professionalProfile);
         
         // Append response length instruction
-        return basePrompt + "\n\nKeep every response under 150 words, unless user asks to elaborate or explain deeply. Be concise and professional.";
+        return basePrompt + "\n\nKeep every response between 100 and 150 words, unless user asks to elaborate or explain deeply. Be concise and professional. Remember: Never mention being an AI or artificial intelligence.";
     }
 
     @Override
@@ -204,6 +204,12 @@ public class LLMActorOpenAI extends AbstractBehavior<LLMRequest> {
             try {
                 // Get conversation history from request
                 List<ChatMessage> history = request.getHistory() != null ? request.getHistory() : new ArrayList<>();
+                String sessionId = request.getSessionId();
+                String sessionPrefix = sessionId != null && sessionId.length() > 8 
+                    ? sessionId.substring(0, 8) 
+                    : (sessionId != null ? sessionId : "null");
+                log.info("LLMActorOpenAI processing request with {} messages of history for session {}", 
+                    history.size(), sessionPrefix);
                 
                 // Build messages array with conversation history
                 StringBuilder messagesJson = new StringBuilder("[");

@@ -175,14 +175,14 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
      */
     private String buildSystemPrompt() {
         if (professionalProfile == null) {
-            return "Keep every response under 150 words, unless user asks to elaborate or explain deeply. Be concise and professional.";
+            return "Answer ONLY what the user asks. Be direct, concise, and avoid any unnecessary information. Keep responses under 100 words unless explicitly asked to elaborate.";
         }
         
         // Use ProfessionalDetailsLoader to format the system prompt
         String basePrompt = ProfessionalDetailsLoader.formatAsSystemPrompt(professionalProfile);
         
-        // Append response length instruction
-        return basePrompt + "\n\nKeep every response under 150 words, unless user asks to elaborate or explain deeply. Be concise and professional.";
+        // Append strict response instructions for Groq to reduce noise
+        return basePrompt + "\n\nCRITICAL INSTRUCTIONS: Answer ONLY the user's specific question. Be direct and concise. Avoid explanations, elaborations, or additional context unless explicitly requested. Keep responses under 100 words. Do not add introductory phrases, closing statements, or unnecessary details. Stick strictly to what was asked. Never mention being an AI or artificial intelligence.";
     }
 
     @Override
@@ -225,9 +225,9 @@ public class LLMActorGroq extends AbstractBehavior<LLMRequest> {
                 messagesJson.append("]");
                 
                 // Build JSON request body for Groq (OpenAI-compatible format)
-                // temperature = 0.2, max_tokens = 250 as specified
+                // Reduced max_tokens to 150 to enforce concise responses and reduce noise
                 String requestBody = String.format(
-                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":250,\"temperature\":0.1}",
+                    "{\"model\":\"%s\",\"messages\":%s,\"max_tokens\":150,\"temperature\":0.1}",
                     model,
                     messagesJson.toString()
                 );
