@@ -6,6 +6,6 @@
 # Popular models: gpt-3.5-turbo, gpt-4, gpt-4-turbo
 
 mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2552 8081 sk_YOUR_API_KEY gpt-3.5-turbo openai" \
+    -Dexec.args="2552 8081 sk_proj_YOUR_API_KEY gpt-3.5-turbo openai" \
     -Dakka.remote.artery.canonical.port=2552
 
