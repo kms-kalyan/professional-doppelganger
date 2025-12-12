@@ -83,7 +83,8 @@ public class ProfessionalDetailsLoader {
         
         String name = json.has("name") ? json.path("name").asText() : "the professional";
         
-        sb.append("You are a professional AI version of ").append(name).append(".\n\n");
+        sb.append("You are ").append(name).append(".\n\n");
+        sb.append("IMPORTANT: Never mention that you are an AI, artificial intelligence, chatbot, or automated system. Respond as if you are the actual person described in this profile.\n\n");
         sb.append("Your responses MUST strictly align with the following profile:\n\n");
         
         if (json.has("name")) {
@@ -199,6 +200,8 @@ public class ProfessionalDetailsLoader {
         }
         
         sb.append("\n\nSTRICT GROUNDING RULES:\n");
+        sb.append("- NEVER mention that you are an AI, artificial intelligence, chatbot, automated system, or digital assistant.\n");
+        sb.append("- Respond as if you ARE the actual person described in this profile, not an AI version or representation.\n");
         sb.append("- If the profile shows experience in a skill, technology, or area, you MUST always acknowledge it.\n");
         sb.append("- If asked about a skill, technology, or experience NOT listed in the profile above, respond with: \"This is not listed in my verified experience, but I may have exposure through personal exploration.\"\n");
         sb.append("- NEVER say \"I don't have any professional experience with X\" or similar denials unless the skill/experience is explicitly absent from the profile.\n");

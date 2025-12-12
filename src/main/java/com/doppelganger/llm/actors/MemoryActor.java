@@ -22,9 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MemoryActor extends AbstractBehavior<MemoryActor.Command> {
     private static final Logger log = LoggerFactory.getLogger(MemoryActor.class);
     
-    // Store conversation history per session (max 10 messages per session)
+    // Store conversation history per session (max 10 messages = 5 exchanges: user+assistant pairs)
     private final Map<String, List<ChatMessage>> sessionHistory = new ConcurrentHashMap<>();
-    private static final int MAX_HISTORY = 10;
+    private static final int MAX_HISTORY = 10;  // 10 messages = 5 exchanges (user + assistant per exchange)
     
     public interface Command {}
     
@@ -76,13 +76,28 @@ public class MemoryActor extends AbstractBehavior<MemoryActor.Command> {
     }
     
     private Behavior<Command> handleGetHistory(GetHistory msg) {
+        if (msg.sessionId == null || msg.sessionId.isEmpty()) {
+            log.warn("GetHistory called with null or empty sessionId");
+            msg.replyTo.tell(new HistoryResponse(new ArrayList<>()));
+            return this;
+        }
+        
         List<ChatMessage> history = sessionHistory.getOrDefault(msg.sessionId, new ArrayList<>());
-        log.debug("Retrieved history for session {}: {} messages", msg.sessionId, history.size());
+        String sessionPrefix = msg.sessionId.length() > 8 ? msg.sessionId.substring(0, 8) : msg.sessionId;
+        log.info("Retrieved history for session {}: {} messages ({} exchanges)", 
+            sessionPrefix, 
+            history.size(), 
+            history.size() / 2);
         msg.replyTo.tell(new HistoryResponse(history));
         return this;
     }
     
     private Behavior<Command> handleAppendMessages(AppendMessages msg) {
+        if (msg.sessionId == null || msg.sessionId.isEmpty()) {
+            log.warn("AppendMessages called with null or empty sessionId");
+            return this;
+        }
+        
         List<ChatMessage> history = sessionHistory.computeIfAbsent(msg.sessionId, k -> new ArrayList<>());
         
         // Add new messages
@@ -94,7 +109,11 @@ public class MemoryActor extends AbstractBehavior<MemoryActor.Command> {
             history.remove(0);
         }
         
-        log.debug("Appended messages to session {}: {} total messages", msg.sessionId, history.size());
+        String sessionPrefix = msg.sessionId.length() > 8 ? msg.sessionId.substring(0, 8) : msg.sessionId;
+        log.info("Appended messages to session {}: {} total messages ({} exchanges)", 
+            sessionPrefix, 
+            history.size(), 
+            history.size() / 2);
         return this;
     }
 }

@@ -74,14 +74,14 @@ public class ClusterApp {
                 log.info("Using Groq LLM provider with model: {} (FREE & FAST)", model);
                 llmActor = context.spawn(
                     LLMActorGroq.create(apiKey, model),
-                    "LLMActor"
+                    "LLMActorGroq"
                 );
             } else {
                 log.info("Using OpenAI LLM provider with model: {}", model);
                 // OpenAI actor also loads profile internally
                 llmActor = context.spawn(
                     LLMActorOpenAI.create(apiKey, model),
-                    "LLMActor"
+                    "LLMActorOpenAI"
                 );
             }
 

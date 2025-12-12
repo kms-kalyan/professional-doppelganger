@@ -87,9 +87,21 @@ public class HttpServerActor extends AbstractBehavior<HttpServerActor.Command> {
                         try {
                             // Parse JSON request
                             QueryRequest request = objectMapper.readValue(body, QueryRequest.class);
-                            String sessionId = UUID.randomUUID().toString();
-                            
-                            log.info("Received HTTP query: {}", request.query);
+                            // Use sessionId from request if provided and valid, otherwise generate a new one
+                            String sessionId;
+                            if (request.sessionId != null && !request.sessionId.trim().isEmpty() && request.sessionId.length() > 10) {
+                                // Valid sessionId provided - use it
+                                sessionId = request.sessionId.trim();
+                                log.info("Received HTTP query: '{}' | Using EXISTING sessionId: {}", 
+                                    request.query, sessionId.substring(0, Math.min(8, sessionId.length())));
+                            } else {
+                                // No valid sessionId - generate new one
+                                sessionId = UUID.randomUUID().toString();
+                                log.info("Received HTTP query: '{}' | Generated NEW sessionId: {} (request had: {})", 
+                                    request.query, 
+                                    sessionId.substring(0, Math.min(8, sessionId.length())),
+                                    request.sessionId != null ? request.sessionId : "null");
+                            }
                             
                             // Use ask pattern to get response from routing actor
                             CompletionStage<QueryResponse> responseFuture = AskPattern.ask(
@@ -155,6 +167,7 @@ public class HttpServerActor extends AbstractBehavior<HttpServerActor.Command> {
 
     private static class QueryRequest {
         public String query;
+        public String sessionId;  // Optional: if provided, use existing session; if not, create new
     }
 }
 

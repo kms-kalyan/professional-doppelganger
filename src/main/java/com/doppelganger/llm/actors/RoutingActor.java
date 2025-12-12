@@ -93,7 +93,7 @@ public class RoutingActor extends AbstractBehavior<QueryMessage> {
         
         log.info("RoutingActor received query: {}", query.getQuery());
 
-        // 1. TELL pattern: RoutingActor → LoggerActor (fire-and-forget)
+        // TELL pattern: RoutingActor → LoggerActor (fire-and-forget)
         LogMessage logMsg = new LogMessage("INFO", 
             "Received query: " + query.getQuery(), 
             query.getSessionId(),
@@ -107,6 +107,14 @@ public class RoutingActor extends AbstractBehavior<QueryMessage> {
             MemoryActor.HistoryResponse.class,
             historyResponse -> {
                 // Now that we have history, proceed to call LLMActor using ASK pattern
+                String sessionId = queryForResponse.getSessionId();
+                String sessionPrefix = sessionId != null && sessionId.length() > 8 
+                    ? sessionId.substring(0, 8) 
+                    : (sessionId != null ? sessionId : "null");
+                log.info("RoutingActor received history for session {}: {} messages ({} exchanges)", 
+                    sessionPrefix,
+                    historyResponse.messages.size(),
+                    historyResponse.messages.size() / 2);
                 proceedWithLLMRequest(queryForResponse, historyResponse.messages);
                 return new QueryMessage("__HISTORY_RECEIVED__", queryForResponse.getSessionId(),
                     getContext().getSystem().ignoreRef());
@@ -120,6 +128,7 @@ public class RoutingActor extends AbstractBehavior<QueryMessage> {
     }
     
     private void proceedWithLLMRequest(QueryMessage query, List<ChatMessage> history) {
+        log.info("RoutingActor sending request to LLMActor with {} messages of history", history.size());
         // 3. ASK pattern: RoutingActor → LLMActor (request-response with Future)
         // Create message adapter that converts LLMResponse to QueryMessage
         ActorRef<LLMResponse> replyAdapter = getContext().messageAdapter(
