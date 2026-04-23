@@ -244,7 +244,7 @@ GitHub Repo:
 - OpenAI API
 - Groq API
 - Akka Actor Framework
-- AI coding tools (ChatGPT, Copilot)
+- AI coding tools (Cursor AI, ChatGPT, Copilot)
 
 ## Submission Notes
 
