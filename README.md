@@ -1,188 +1,251 @@
-# LLM Akka Cluster
+# Professional Doppelganger
 
-A distributed Akka Cluster application that integrates with OpenAI API to process user queries through a web interface.
+**A Distributed AI System for Personal Digital Representation**
 
-## Features
+## Problem Statement
 
-- **Akka Cluster (Typed)**: Distributed system with 2+ nodes
-- **Multiple Actors per Node**: RoutingActor, LLMActor, LoggingActor
-- **Actor Communication Patterns**:
-  - **Tell**: Fire-and-forget messages (logging)
-  - **Ask**: Request-response pattern (LLM queries)
-  - **Forward**: Message forwarding with original sender context
-- **OpenAI Integration**: Processes queries using OpenAI models
-- **Web Interface**: Modern HTML/JavaScript frontend
+Traditional professional profiles (resumes, LinkedIn) are static and fail to capture how a person actually communicates, thinks, and responds in real-world scenarios.
 
-## Architecture
+This creates a gap:
 
-### Message Flow
+- Recruiters and collaborators cannot interact dynamically with a candidate’s knowledge and experience
+- Candidates cannot scale their professional presence or respond to repeated queries efficiently
 
-1. User submits query via web interface
-2. HTTP Server receives request and uses **ask** pattern to send QueryMessage to RoutingActor
-3. RoutingActor:
-   - Uses **tell** pattern to send log message to LoggingActor (fire-and-forget)
-   - Uses message adapter to request response from LLMActor
-   - LLMActor processes query via OpenAI API and responds
-   - RoutingActor uses **tell** to forward log message to LoggingActor (demonstrates forward pattern)
-   - RoutingActor sends QueryResponse back to HTTP Server
-4. HTTP Server returns JSON response to web interface
+Who is affected?
 
-### Actors
+- Job seekers
+- Recruiters and hiring managers
+- Professionals engaging in networking or knowledge sharing
 
-- **RoutingActor**: Routes messages between actors, demonstrates tell, ask, and forward patterns
-- **LLMActor**: Handles communication with OpenAI API
-- **LoggingActor**: Logs messages, demonstrates forward pattern (receives messages with original sender)
-- **HttpServerActor**: Handles HTTP requests and serves web interface
+Why does this matter?
 
-## Prerequisites
+If solved, professionals could have an always-available AI representative that:
 
-- Java 17 or higher
-- Maven 3.6+
-- OpenAI API key (get from https://platform.openai.com/api-keys)
+- Answers questions in their voice
+- Maintains context across conversations
+- Scales communication without losing personalization
 
-## Setup
+Success looks like:
 
-1. **Clone the repository** (if applicable)
+- Users can interact with a digital persona and receive consistent, context-aware responses
+- Conversations feel natural, personalized, and aligned with the individual
 
-2. **Get and configure OpenAI API key**:
-   - **Get API key**: See detailed instructions in `OPENAI_API_KEY_SETUP.md`
-   - Quick steps:
-     1. Go to https://platform.openai.com/ and create an account
-     2. Go to https://platform.openai.com/api-keys
-     3. Click "Create new secret key" → Name it → Generate
-     4. Copy the token (starts with `sk-`)
-   - Edit `scripts/start-node1.sh` and `scripts/start-node2.sh`
-   - Replace `sk_YOUR_API_KEY` with your actual token
+## Solution Overview
 
-3. **Make scripts executable**:
-   ```bash
-   chmod +x scripts/start-node1.sh
-   chmod +x scripts/start-node2.sh
-   ```
+Professional Doppelganger is a distributed AI-powered system that acts as a digital twin of a professional.
 
-## Running the Application
+It:
 
-### Option 1: Using Startup Scripts
+- Accepts user queries via a web interface
+- Understands context using conversation memory
+- Generates personalized responses using LLMs
+- Maintains consistent tone and communication style
 
-**Terminal 1 - Start Node 1:**
+Unlike a simple chatbot, this system is designed as a modular, orchestrated workflow of AI components, making it extensible toward agentic systems.
+
+Key Features:
+
+- Context-aware conversation (memory persistence)
+- Multi-LLM support (OpenAI + Groq)
+- Distributed architecture using Akka Cluster
+- Modular actor-based design
+- Real-time response generation
+
+Role of AI:
+
+AI is core to the system, not supplementary. Without LLMs, the system would reduce to a static FAQ engine. AI enables:
+
+- Natural language understanding
+- Personalized response generation
+- Adaptive communication
+
+## AI Integration
+
+Models & Providers:
+
+- OpenAI (GPT-3.5 / GPT-4 / GPT-4-turbo)
+- Groq (LLaMA 3, Mixtral)
+
+Why multiple providers?
+
+- Tradeoff between latency, cost, and performance
+- Flexibility to switch models dynamically
+
+Agentic Patterns Used:
+
+- Orchestration via RoutingActor (central decision layer)
+- Multi-step workflow (memory → reasoning → response)
+- Tool abstraction (LLMActor as a unified interface to external AI services)
+
+What worked well:
+
+- Modular separation of concerns made AI integration clean
+- Multi-provider setup improved flexibility and resilience
+
+Limitations:
+
+- No retrieval-based grounding (no RAG yet)
+- Limited tool usage (no external API actions yet)
+- Responses depend on prompt + memory only
+
+## Architecture / Design Decisions
+
+The system is built using an Akka Typed Actor model deployed as a distributed cluster.
+
+### Core Components
+
+- RoutingActor → Orchestrates the workflow
+- LLMActor → Handles LLM API communication
+- MemoryActor → Stores conversation history
+- LoggingActor → Handles observability
+- HttpServerActor → Exposes REST API
+
+### Distributed Setup
+
+- 2 nodes running locally:
+  - Node 1 → Groq LLM
+  - Node 2 → OpenAI LLM
+- Nodes form a cluster but process requests independently
+
+### Communication Patterns
+
+- ASK → synchronous request-response (critical path)
+- TELL → async side effects (logging, memory updates)
+- FORWARD → preserves original request context
+
+### Design Tradeoffs
+
+- ✅ Actor model → high modularity and scalability
+- ✅ Multi-node setup → simulates distributed systems
+- ❌ Nodes do not share workload (no cross-node routing yet)
+- ❌ No persistent storage (memory is session-based)
+
+##  AI-Assisted Development
+
+AI tools (ChatGPT, Copilot) were used to:
+
+- Rapidly prototype actor communication patterns
+- Debug concurrency and async flows
+- Generate boilerplate and refine API integrations
+
+What AI accelerated:
+
+- Faster iteration on architecture
+- Reduced time spent on low-level implementation
+
+Limitations:
+
+- Required manual correction for concurrency edge cases
+- Needed deeper understanding to validate generated logic
+
+Impact:
+
+AI acted as a force multiplier, allowing focus on system design rather than syntax.
+
+## Getting Started / Setup Instructions
+
+Clone and enter the repo:
+
 ```bash
-./scripts/start-node1.sh
-```
-This starts:
-- Cluster node on port 2551
-- HTTP server on port 8080
-
-**Terminal 2 - Start Node 2:**
-```bash
-./scripts/start-node2.sh
-```
-This starts:
-- Cluster node on port 2552
-- HTTP server on port 8081
-
-### Option 2: Manual Start
-
-**Node 1:**
-```bash
-mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2551 8080 sk_YOUR_API_KEY gpt-3.5-turbo openai"
+git clone https://github.com/kms-kalyan/professional-doppelganger.git
+cd professional-doppelganger
 ```
 
-**Node 2:**
-```bash
-mvn exec:java -Dexec.mainClass="com.doppelganger.llm.ClusterApp" \
-    -Dexec.args="2552 8081 sk_YOUR_API_KEY gpt-3.5-turbo openai"
-```
-
-## Using the Web Interface
-
-1. Open your browser and navigate to:
-   - Node 1: http://localhost:8080
-   - Node 2: http://localhost:8081
-
-2. Type your query in the input field and click "Send"
-
-3. The system will:
-   - Route your query through the cluster
-   - Process it via OpenAI
-   - Return the response
-
-## API Endpoint
-
-You can also use the API directly:
+Configure Environment Variables:
 
 ```bash
-curl -X POST http://localhost:8080/api/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is Akka?"}'
+cp .env.example .env
 ```
 
-Response:
-```json
-{
-  "query": "What is Akka?",
-  "response": "...",
-  "sessionId": "...",
-  "success": true
-}
+Update `.env` with:
+
+- OpenAI API Key
+- Groq API Key
+
+Run the Application:
+
+Start both nodes:
+
+```bash
+# Node 1 (Groq)
+./run-node1.sh
+
+# Node 2 (OpenAI)
+./run-node2.sh
 ```
 
-## Project Structure
+Or run manually with ports:
 
-```
-llm-akka-cluster/
-├── src/main/java/com/doppelganger/llm/
-│   ├── actors/
-│   │   ├── HttpServerActor.java    # HTTP server and routing
-│   │   ├── LLMActor.java           # OpenAI integration
-│   │   ├── LoggingActor.java       # Logging service
-│   │   └── RoutingActor.java       # Message routing
-│   ├── messages/
-│   │   ├── LLMRequest.java         # LLM request message
-│   │   ├── LLMResponse.java        # LLM response message
-│   │   ├── LogMessage.java         # Log message
-│   │   ├── QueryMessage.java       # User query message
-│   │   └── QueryResponse.java      # Query response message
-│   └── ClusterApp.java             # Main application
-├── src/main/resources/
-│   ├── application.conf            # Akka configuration
-│   └── logback.xml                 # Logging configuration
-├── src/main/webapp/
-│   └── index.html                  # Web interface
-├── scripts/
-│   ├── start-node1.sh              # Node 1 startup script
-│   └── start-node2.sh              # Node 2 startup script
-└── pom.xml                         # Maven configuration
-```
+- Node 1 → 8080
+- Node 2 → 8081
 
-## Requirements Demonstrated
+## Demo
 
-This project fully implements all required features:
+How to Use:
 
-✅ **Akka Cluster**: 2+ nodes running locally (Typed API)  
-✅ **Service Actors**: 5 actors per node (RoutingActor, LLMActor, LoggingActor, MemoryActor, HttpServerActor)  
-✅ **Tell Pattern**: Fire-and-forget messages demonstrated multiple times (RoutingActor → LoggingActor, RoutingActor → MemoryActor)  
-✅ **Ask Pattern**: Request-response pattern demonstrated multiple times (HttpServerActor → RoutingActor, RoutingActor → LLMActor, RoutingActor → MemoryActor)  
-✅ **Forward Pattern**: Messages forwarded to LoggingActor with original sender context preserved  
-✅ **LLM Integration**: OpenAI API integration via LLMActor (Groq also supported)  
-✅ **Web Interface**: HTML/JavaScript frontend  
-✅ **Message Flow**: Complete flow from user query to LLM response
+Open browser at:
 
-**For detailed requirements compliance documentation, see [REQUIREMENTS_COMPLIANCE.md](REQUIREMENTS_COMPLIANCE.md)**
+- `http://localhost:8080`
+- `http://localhost:8081`
 
-## Configuration
+Enter queries like:
 
-Cluster configuration is in `src/main/resources/application.conf`:
-- Seed nodes: 127.0.0.1:2551 and 127.0.0.1:2552
-- Cluster port is set dynamically via system property
+- “Introduce yourself”
+- “What are your strengths?”
+- “What roles are you looking for?”
 
-## Troubleshooting
+Observe:
 
-- **Cluster not forming**: Ensure both nodes are started and can communicate
-- **API errors**: Verify your OpenAI API key is correct and has credits/balance
-- **Port conflicts**: Change ports in startup scripts if 8080/8081 or 2551/2552 are in use
+- Context-aware responses
+- Consistent tone
+- Real-time LLM generation
 
-## License
+(UI screenshot shown in project slides)
 
-This is a project for educational purposes demonstrating Akka Cluster patterns.
+## Testing / Error Handling
 
+Tested for:
+
+- Multi-turn conversations
+- API failures and timeouts
+- Missing or invalid inputs
+
+Error Handling:
+
+- Graceful fallback on LLM API failure
+- Logging of all requests/responses
+- Timeout handling for async calls
+
+Edge Cases Considered:
+
+- Empty queries
+- Long conversation history
+- API latency issues
+
+## Future Improvements / Stretch Goals
+
+- Add RAG with vector database for deeper knowledge grounding
+- Enable tool usage (API integrations) for real-world actions
+- Implement cross-node communication for load balancing
+- Add persistent storage for long-term memory
+- Build integrations with:
+  - Slack
+  - CRM systems
+  - Ticketing platforms
+
+## Links
+
+GitHub Repo:
+
+- `https://github.com/kms-kalyan/professional-doppelganger.git`
+
+## Acknowledgments
+
+- OpenAI API
+- Groq API
+- Akka Actor Framework
+- AI coding tools (ChatGPT, Copilot)
+
+## Submission Notes
+
+This project was built as an original work for the Klaviyo AI Builder Residency application and complies with all submission guidelines outlined in the README template.
