@@ -37,7 +37,7 @@
   "experience": [
     {
       "company": "Goodwork",
-      "position": "Full Stack Engineer Co-op",
+      "position": "Full Stack Engineer",
       "duration": "Jan 2025 - May 2025",
       "description": "Collaborated with teammates to integrate frontend components with backend APIs (Node.js/Redis), achieving a 45% reduction in data integration time. Spearheaded a core application transition to Node.js. Revamped a high-traffic 'Explore Jobs' page using Vue.js, decreasing page load times by 60%. Pioneered a reusable integration library using Node.js managing over 10,000 job postings per day."
     },
@@ -69,6 +69,23 @@
     }
   ],
   "projects": [
+    {
+      "name": "Distributed LLM-Powered Doppelganger",
+      "description": "Built an Akka Cluster-based distributed system with actor communication patterns (tell, ask, forward) and integrated LLM APIs (OpenAI/Groq) to create a professional chatbot application. Designed and implemented a scalable microservices architecture using Akka Typed actors, HTTP servers, and LLM integration, enabling concurrent query processing with proper error handling and rate limiting.",
+      "technologies": [
+        "Akka",
+        "OpenAI",
+        "Groq",
+        "HTTP",
+        "JSON",
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "LLM APIs",
+        "AI Agents",
+        "AI Chatbots"
+      ]
+    },
     {
       "name": "Cloud-Based Web Application with AWS and Terraform Integration",
       "description": "Took end-to-end ownership of a secure web application, using Python and Terraform to automate infrastructure deployment on AWS (including S3, SQS, and RDS). [cite_start]Implemented a CI/CD pipeline with GitHub Actions for pipeline automation and automated testing[cite: 36, 37].",
@@ -139,7 +156,7 @@
       ]
     }
   ],
-  "certifications": [],
+  "certifications": [ "AWS Certified CLoud Practitioner" ],
   "languages": [
     "Java",
     "C/C++",
