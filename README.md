@@ -1,251 +1,74 @@
 # Professional Doppelganger
 
-**A Distributed AI System for Personal Digital Representation**
+> A distributed multi-LLM chatbot that answers questions about me in my own voice — built on Akka Cluster with an actor-based architecture.
 
-## Problem Statement
+Most professional profiles are static. Resumes and LinkedIn pages can't answer follow-up questions, can't hold context, and can't scale. Professional Doppelganger is an experiment in fixing that: a digital twin you can actually talk to, built as a distributed actor system rather than a single-process chatbot.
 
-Traditional professional profiles (resumes, LinkedIn) are static and fail to capture how a person actually communicates, thinks, and responds in real-world scenarios.
+**Stack:** Java 17 · Akka Typed · OpenAI API · Claude API · Maven
 
-This creates a gap:
+---
 
-- Recruiters and collaborators cannot interact dynamically with a candidate’s knowledge and experience
-- Candidates cannot scale their professional presence or respond to repeated queries efficiently
+## What makes it interesting
 
-Who is affected?
+- **Actor-based, not request-based.** The conversation isn't handled by one server — it's a workflow across five typed actors (routing, LLM, memory, logging, HTTP), communicating with explicit `ASK` / `TELL` / `FORWARD` semantics.
+- **Multi-provider by design.** Two cluster nodes run two different LLM providers (OpenAI on one, Claude on the other). Lets me trade off latency, cost, and quality without changing client code.
+- **Conversation memory as a first-class actor.** The `MemoryActor` owns history; the `LLMActor` is stateless. This made the hardest part of the project — keeping responses grounded in prior turns without prompt bloat — a tractable design problem instead of a tangle of session globals.
 
-- Job seekers
-- Recruiters and hiring managers
-- Professionals engaging in networking or knowledge sharing
+**Two nodes, independent processing:** Node 1 (port 8080) routes to Claude; Node 2 (port 8081) routes to OpenAI. They form a cluster but don't currently share workload — each handles its own requests end-to-end. Cross-node routing is on the roadmap.
 
-Why does this matter?
+## The hardest part
 
-If solved, professionals could have an always-available AI representative that:
+Keeping responses *on topic* across a multi-turn conversation, without letting the prompt grow until it dominated both cost and coherence.
 
-- Answers questions in their voice
-- Maintains context across conversations
-- Scales communication without losing personalization
+Naive solutions failed quickly:
 
-Success looks like:
+- Stuffing the full history into every prompt → token bloat, slower responses, model started drifting.
+- Truncating to the last N turns → lost important context from earlier in the conversation.
+- Letting the LLM "summarize itself" each turn → introduced its own hallucinations into the memory.
 
-- Users can interact with a digital persona and receive consistent, context-aware responses
-- Conversations feel natural, personalized, and aligned with the individual
+The working approach: the `MemoryActor` keeps a structured rolling window plus a separate slot for "anchored facts" (name, role, key experience) that always get injected. The `RoutingActor` shapes the prompt before handing off to the `LLMActor`, so the LLM only ever sees a curated context, not the raw history. Responses stayed grounded and the prompt size stayed bounded.
 
-## Solution Overview
+## Communication patterns
 
-Professional Doppelganger is a distributed AI-powered system that acts as a digital twin of a professional.
+| Pattern | Used for | Why |
+|---|---|---|
+| `ASK` | HTTP request → routing → LLM → response | Blocking the response on the LLM is the critical path |
+| `TELL` | Memory updates, log writes | Side effects shouldn't block the user |
+| `FORWARD` | Preserving original sender through the routing chain | The HTTP actor needs the reply, not the router |
 
-It:
-
-- Accepts user queries via a web interface
-- Understands context using conversation memory
-- Generates personalized responses using LLMs
-- Maintains consistent tone and communication style
-
-Unlike a simple chatbot, this system is designed as a modular, orchestrated workflow of AI components, making it extensible toward agentic systems.
-
-Key Features:
-
-- Context-aware conversation (memory persistence)
-- Multi-LLM support (OpenAI + Groq)
-- Distributed architecture using Akka Cluster
-- Modular actor-based design
-- Real-time response generation
-
-Role of AI:
-
-AI is core to the system, not supplementary. Without LLMs, the system would reduce to a static FAQ engine. AI enables:
-
-- Natural language understanding
-- Personalized response generation
-- Adaptive communication
-
-## AI Integration
-
-Models & Providers:
-
-- OpenAI (GPT-3.5 / GPT-4 / GPT-4-turbo)
-- Groq (LLaMA 3, Mixtral)
-
-Why multiple providers?
-
-- Tradeoff between latency, cost, and performance
-- Flexibility to switch models dynamically
-
-Agentic Patterns Used:
-
-- Orchestration via RoutingActor (central decision layer)
-- Multi-step workflow (memory → reasoning → response)
-- Tool abstraction (LLMActor as a unified interface to external AI services)
-
-What worked well:
-
-- Modular separation of concerns made AI integration clean
-- Multi-provider setup improved flexibility and resilience
-
-Limitations:
-
-- No retrieval-based grounding (no RAG yet)
-- Limited tool usage (no external API actions yet)
-- Responses depend on prompt + memory only
-
-## Architecture / Design Decisions
-
-The system is built using an Akka Typed Actor model deployed as a distributed cluster.
-
-### Core Components
-
-- RoutingActor → Orchestrates the workflow
-- LLMActor → Handles LLM API communication
-- MemoryActor → Stores conversation history
-- LoggingActor → Handles observability
-- HttpServerActor → Exposes REST API
-
-### Distributed Setup
-
-- 2 nodes running locally:
-  - Node 1 → Groq LLM
-  - Node 2 → OpenAI LLM
-- Nodes form a cluster but process requests independently
-
-### Communication Patterns
-
-- ASK → synchronous request-response (critical path)
-- TELL → async side effects (logging, memory updates)
-- FORWARD → preserves original request context
-
-### Design Tradeoffs
-
-- ✅ Actor model → high modularity and scalability
-- ✅ Multi-node setup → simulates distributed systems
-- ❌ Nodes do not share workload (no cross-node routing yet)
-- ❌ No persistent storage (memory is session-based)
-
-##  AI-Assisted Development
-
-AI tools (ChatGPT, Copilot) were used to:
-
-- Rapidly prototype actor communication patterns
-- Debug concurrency and async flows
-- Generate boilerplate and refine API integrations
-
-What AI accelerated:
-
-- Faster iteration on architecture
-- Reduced time spent on low-level implementation
-
-Limitations:
-
-- Required manual correction for concurrency edge cases
-- Needed deeper understanding to validate generated logic
-
-Impact:
-
-AI acted as a force multiplier, allowing focus on system design rather than syntax.
-
-## Getting Started / Setup Instructions
-
-Clone and enter the repo:
+## Running it locally
 
 ```bash
+# Clone and configure
 git clone https://github.com/kms-kalyan/professional-doppelganger.git
 cd professional-doppelganger
+cp .env.example .env  # add your OpenAI and Claude API keys
+
+# Start both nodes
+./scripts/run-node1.sh   # Claude, port 8080
+./scripts/run-node2.sh   # OpenAI, port 8081
+
+# Talk to it
+open http://localhost:8080
 ```
 
-Configure Environment Variables:
+Try queries like "What kind of roles are you looking for?" or "Walk me through your AWS experience." The two ports route to different providers — useful for comparing model behavior side by side.
 
-```bash
-cp .env.example .env
-```
+## What's next
 
-Update `.env` with:
+- **Cross-node routing** — currently each node processes independently; the next step is load-balancing requests across the cluster.
+- **RAG grounding** — replace the static prompt context with retrieval from a vector store over my actual project writeups and resume.
+- **Persistent memory** — move conversation state out of the actor's in-memory store into Postgres or Redis.
+- **Tool use** — let the LLM actor call APIs (fetch GitHub stats, look up a project) rather than only generating text.
 
-- OpenAI API Key
-- Groq API Key
+## Tech stack
 
-Run the Application:
+- **Language:** Java 17
+- **Concurrency:** Akka Typed Actors, Akka Cluster
+- **LLMs:** OpenAI (GPT-4 / GPT-3.5), Claude (LLaMA 3, Mixtral)
+- **HTTP:** Akka HTTP
+- **Build:** Maven
 
-Start both nodes:
+---
 
-```bash
-# Node 1 (Groq)
-./run-node1.sh
-
-# Node 2 (OpenAI)
-./run-node2.sh
-```
-
-Or run manually with ports:
-
-- Node 1 → 8080
-- Node 2 → 8081
-
-## Demo
-
-How to Use:
-
-Open browser at:
-
-- `http://localhost:8080`
-- `http://localhost:8081`
-
-Enter queries like:
-
-- “Introduce yourself”
-- “What are your strengths?”
-- “What roles are you looking for?”
-
-Observe:
-
-- Context-aware responses
-- Consistent tone
-- Real-time LLM generation
-
-(UI screenshot shown in project slides)
-
-## Testing / Error Handling
-
-Tested for:
-
-- Multi-turn conversations
-- API failures and timeouts
-- Missing or invalid inputs
-
-Error Handling:
-
-- Graceful fallback on LLM API failure
-- Logging of all requests/responses
-- Timeout handling for async calls
-
-Edge Cases Considered:
-
-- Empty queries
-- Long conversation history
-- API latency issues
-
-## Future Improvements / Stretch Goals
-
-- Add RAG with vector database for deeper knowledge grounding
-- Enable tool usage (API integrations) for real-world actions
-- Implement cross-node communication for load balancing
-- Add persistent storage for long-term memory
-- Build integrations with:
-  - Slack
-  - CRM systems
-  - Ticketing platforms
-
-## Links
-
-GitHub Repo:
-
-- `https://github.com/kms-kalyan/professional-doppelganger.git`
-
-## Acknowledgments
-
-- OpenAI API
-- Groq API
-- Akka Actor Framework
-- AI coding tools (Cursor AI, ChatGPT, Copilot)
-
-## Submission Notes
-
-This project was built as an original work for the Klaviyo AI Builder Residency application and complies with all submission guidelines outlined in the README template.
+*Built solo as a learning project to explore actor-based architectures applied to LLM workflows.*
