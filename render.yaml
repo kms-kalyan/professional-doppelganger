@@ -1,0 +1,21 @@
+# Render Blueprint — deploy this app as a free Docker web service.
+# On render.com: New > Blueprint > connect this repo. Render reads this file,
+# builds the Dockerfile, and prompts you to paste the two secret keys below.
+services:
+  - type: web
+    name: professional-doppelganger
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # Marked sync:false → Render prompts you to enter these in the dashboard
+      # (they are never stored in the repo).
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional model overrides (uncomment to change):
+      # - key: OPENAI_MODEL
+      #   value: gpt-4o-mini
+      # - key: CLAUDE_MODEL
+      #   value: claude-haiku-4-5

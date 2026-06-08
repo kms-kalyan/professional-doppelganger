@@ -5,8 +5,9 @@ import akka.actor.typed.ActorSystem;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.cluster.typed.Cluster;
+import com.doppelganger.llm.actors.FallbackLLMActor;
 import com.doppelganger.llm.actors.HttpServerActor;
-import com.doppelganger.llm.actors.LLMActorGroq;
+import com.doppelganger.llm.actors.LLMActorClaude;
 import com.doppelganger.llm.actors.LLMActorOpenAI;
 import com.doppelganger.llm.actors.LoggingActor;
 import com.doppelganger.llm.actors.MemoryActor;
@@ -25,23 +26,23 @@ public class ClusterApp {
     private static final Logger log = LoggerFactory.getLogger(ClusterApp.class);
 
     public static void main(String[] args) {
-        if (args.length < 3) {
-            System.err.println("Usage: ClusterApp <port> <httpPort> <apiKey> [model] [provider]");
-            System.err.println("Providers: groq (default, recommended), openai");
-            System.err.println("Example (Groq - FREE & FAST): ClusterApp 2551 8080 gsk_... llama-3.1-8b-instant groq");
-            System.err.println("Example (OpenAI): ClusterApp 2551 8080 sk-... gpt-3.5-turbo openai");
-            System.err.println("Get Groq API key: https://console.groq.com/ (FREE, very fast)");
-            System.err.println("Get OpenAI API key: https://platform.openai.com/api-keys");
-            System.err.println("Popular Groq models: llama-3.1-8b-instant, mixtral-8x7b-32768, gemma-7b-it");
-            System.err.println("Popular OpenAI models: gpt-3.5-turbo, gpt-4, gpt-4-turbo");
+        // Configuration resolves from positional args first (local dev), then environment
+        // variables (deployment platforms inject PORT and secrets as env vars), then defaults.
+        int port = parseIntOrDefault(firstNonBlank(arg(args, 0), System.getenv("CLUSTER_PORT")), 2551);
+        int httpPort = parseIntOrDefault(firstNonBlank(arg(args, 1), System.getenv("PORT")), 8080);
+        String openaiApiKey = firstNonBlank(arg(args, 2), System.getenv("OPENAI_API_KEY"));
+        String openaiModel = firstNonBlank(arg(args, 3), System.getenv("OPENAI_MODEL"), "gpt-4o-mini");
+        String claudeModel = firstNonBlank(arg(args, 4), System.getenv("CLAUDE_MODEL"), "claude-haiku-4-5");
+        // Claude fallback key comes from the environment to keep it out of the process arguments.
+        String anthropicApiKey = System.getenv("ANTHROPIC_API_KEY");
+
+        if (openaiApiKey == null || openaiApiKey.isBlank()) {
+            System.err.println("Missing OpenAI API key (primary provider).");
+            System.err.println("Set the OPENAI_API_KEY environment variable, or pass it as the 3rd argument.");
+            System.err.println("Usage: ClusterApp [clusterPort] [httpPort] [openaiApiKey] [openaiModel] [claudeModel]");
+            System.err.println("Env vars: PORT, CLUSTER_PORT, OPENAI_API_KEY, ANTHROPIC_API_KEY, OPENAI_MODEL, CLAUDE_MODEL");
             System.exit(1);
         }
-
-        int port = Integer.parseInt(args[0]);
-        int httpPort = Integer.parseInt(args[1]);
-        String apiKey = args[2];
-        String model = args.length > 3 ? args[3] : "llama-3.1-8b-instant";
-        String provider = args.length > 4 ? args[4].toLowerCase() : "groq";
 
         log.info("Starting cluster node on port {} with HTTP server on port {}", port, httpPort);
 
@@ -50,7 +51,7 @@ public class ClusterApp {
 
         // Create actor system
         ActorSystem<Void> system = ActorSystem.create(
-            createGuardian(port, httpPort, apiKey, model, provider),
+            createGuardian(port, httpPort, openaiApiKey, openaiModel, anthropicApiKey, claudeModel),
             "ClusterSystem"
         );
 
@@ -65,25 +66,50 @@ public class ClusterApp {
         }));
     }
 
-    private static Behavior<Void> createGuardian(int port, int httpPort, String apiKey, String model, String provider) {
+    private static String arg(String[] args, int index) {
+        return index < args.length ? args[index] : null;
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    private static int parseIntOrDefault(String value, int defaultValue) {
+        return value != null ? Integer.parseInt(value.trim()) : defaultValue;
+    }
+
+    private static Behavior<Void> createGuardian(int port, int httpPort, String openaiApiKey, String openaiModel,
+                                                 String anthropicApiKey, String claudeModel) {
         return Behaviors.setup(context -> {
-            // Create service actors - choose provider
-            // LLMActor will load professional profile JSON internally
-            ActorRef<LLMRequest> llmActor;
-            if ("groq".equals(provider)) {
-                log.info("Using Groq LLM provider with model: {} (FREE & FAST)", model);
-                llmActor = context.spawn(
-                    LLMActorGroq.create(apiKey, model),
-                    "LLMActorGroq"
+            // Primary provider: OpenAI. Each LLM actor loads the professional profile JSON internally.
+            log.info("Primary LLM provider: OpenAI with model: {}", openaiModel);
+            ActorRef<LLMRequest> primaryActor = context.spawn(
+                LLMActorOpenAI.create(openaiApiKey, openaiModel),
+                "LLMActorOpenAI"
+            );
+
+            // Backup provider: Claude (only if an Anthropic API key is available).
+            ActorRef<LLMRequest> backupActor = null;
+            if (anthropicApiKey != null && !anthropicApiKey.isBlank()) {
+                log.info("Fallback LLM provider: Claude with model: {}", claudeModel);
+                backupActor = context.spawn(
+                    LLMActorClaude.create(anthropicApiKey, claudeModel),
+                    "LLMActorClaude"
                 );
             } else {
-                log.info("Using OpenAI LLM provider with model: {}", model);
-                // OpenAI actor also loads profile internally
-                llmActor = context.spawn(
-                    LLMActorOpenAI.create(apiKey, model),
-                    "LLMActorOpenAI"
-                );
+                log.warn("ANTHROPIC_API_KEY not set - Claude fallback is DISABLED. Only OpenAI will be used.");
             }
+
+            // Wrap primary + backup behind a single failover actor; RoutingActor talks only to this.
+            ActorRef<LLMRequest> llmActor = context.spawn(
+                FallbackLLMActor.create(primaryActor, backupActor),
+                "FallbackLLMActor"
+            );
 
             ActorRef<LogMessage> loggingActor = context.spawn(
                 LoggingActor.create(),

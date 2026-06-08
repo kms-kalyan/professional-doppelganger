@@ -1,57 +1,86 @@
 {
   "name": "Madhu Sai Kalyan Kaluri",
-  "title": "Software Engineer",
+  "title": "AI/Backend Engineer",
   "email": "madhusaikalyan25@gmail.com",
   "phone": "+1 (857) 398-5890",
-  "address": "Boston, MA, USA", 
+  "address": "New York City Metropolitan Area",
   "website": "https://madhusaikalyan25.wixsite.com/kms-kalyan",
   "linkedin": "https://www.linkedin.com/in/kms-kalyan/",
   "github": "https://github.com/kms-kalyan",
-  "summary": "Software Engineer with nearly three years of full stack experience in Java, Spring Boot, Node.js, and React. Proficient across the Software Development Life Cycle (SDLC), with expertise in building scalable APIs, optimizing performance, and collaborating in Agile teams to deliver high-quality software.",
+  "summary": "AI/Backend Engineer with 3+ years of hands-on software engineering experience (note: my dates span a Master's program from Sep 2023 to Dec 2025, so total relevant experience is just over three years, not the full calendar range). I build production-grade GenAI systems, not just demos. Most recently architected full RAG pipelines (LangChain, Redis vector store, LlamaIndex) and multi-agent LLM systems processing 10,000+ job listings per day, plus a generative AI chatbot powered by AWS Bedrock. More than three years of backend experience across Java/Spring Boot, Python/FastAPI, and Node.js/NestJS, with a track record of designing scalable REST APIs, optimizing database performance, and building CI/CD pipelines for platforms serving 3M+ customers. Focused on distributed backend systems, LLM integration, and agentic AI pipelines.",
   "skills": [
-    "Spring",
-    "Git",
-    "AWS",
+    "Java",
+    "Spring Boot",
+    "Python",
+    "FastAPI",
+    "Node.js",
     "NestJS",
+    "TypeScript",
     "ReactJS",
-    "Docker",
-    "Kubernetes",
-    "Jenkins",
-    "Relational DBMS",
-    "NoSQL",
+    "React Native",
+    "LangChain",
+    "LlamaIndex",
+    "AWS Bedrock",
+    "RAG Pipelines",
+    "LLM Agents",
+    "Prompt Engineering",
+    "Apache Kafka",
+    "REST APIs",
+    "Redis",
+    "PostgreSQL",
     "MySQL",
     "MongoDB",
     "GraphQL",
-    "PostgreSQL",
+    "SQLAlchemy ORM",
+    "Hibernate",
+    "Docker",
+    "Kubernetes",
+    "AWS EKS",
+    "AWS (EC2, S3, RDS, SQS, CloudWatch)",
+    "Jenkins",
+    "GitHub Actions",
+    "CI/CD",
+    "Git",
+    "Microservices",
+    "Distributed Systems",
     "Spark SQL",
     "Power BI",
-    "JEE",
-    "J2EE",
-    "Eclipse",
-    "Microsoft Visual Studio",
-    "NetBeans IDE",
     "Maven",
     "Linux",
-    "GitHub"
+    "Pytest",
+    "Jest",
+    "JUnit"
   ],
   "experience": [
     {
+      "company": "Saayam For All",
+      "position": "Full Stack Engineer",
+      "duration": "April 2026 - Present",
+      "description": "Full Stack Engineer at Saayam for All (non-profit), contributing to internal tools and user-facing features that support the organization's programs. Developing microservices for Volunteer, Volunteer Org, Request, Generative AI, and Data Analytics using Spring Boot 3, JDK 17, and Python, deploying them in Kafka and AWS EKS (Kubernetes) environments."
+    },
+    {
       "company": "Goodwork",
-      "position": "Full Stack Engineer Co-op",
-      "duration": "Jan 2025 - May 2025",
-      "description": "Collaborated with teammates to integrate frontend components with backend APIs (Node.js/Redis), achieving a 45% reduction in data integration time. Spearheaded a core application transition to Node.js. Revamped a high-traffic 'Explore Jobs' page using Vue.js, decreasing page load times by 60%. Pioneered a reusable integration library using Node.js managing over 10,000 job postings per day."
+      "position": "Full Stack Engineer",
+      "duration": "January 2025 - May 2025",
+      "description": "Built a high-performance RAG pipeline using Python, LangChain, and a Redis vector store, enhancing the job-matching algorithm and reducing candidate retrieval latency by 45%. Led backend migration from PHP to TypeScript/Node.js (NestJS) to support a generative AI platform handling 100,000+ job postings. Developed LLM agents with LangChain to automate job posting analysis and client onboarding, processing 10,000+ listings per day. Implemented a metadata-enhanced RAG pipeline with LlamaIndex powering an 'Explore Jobs' feature, cutting job search latency by 60%. Designed a generative AI chatbot using AWS Bedrock over a knowledge base of job descriptions."
     },
     {
       "company": "Tata Consultancy Services",
       "position": "Software Engineer",
-      "duration": "Aug 2021 - Sept 2023",
-      "description": "Optimized RDMS performance by redesigning SQL queries and schema elements. Developed over 100 backend APIs using Java and Spring Boot. Resolved 50+ backend bugs using JUnit. Implemented CI/CD pipelines using Git and Jenkins for a team supporting 3 million+ customers. Built features using React Native that improved user engagement by 35%."
+      "duration": "August 2021 - September 2023",
+      "description": "Designed and delivered 100+ RESTful APIs using Python (FastAPI) and TypeScript (NestJS), integrating frontend clients with microservices backends. Optimized PostgreSQL query performance by 30% through schema redesign and SQLAlchemy ORM refactoring. Led a code-quality team of 5, resolving 50+ critical bugs with Pytest and Jest. Built and maintained CI/CD pipelines using GitHub Actions and Jenkins for a platform serving 3 million+ customers. Contributed React Native (TypeScript) features that improved engagement by 35%."
     },
     {
-      "company": "BSNL",
+      "company": "Tata Consultancy Services",
+      "position": "Software Intern",
+      "duration": "January 2021 - June 2021",
+      "description": "Authored 10+ SQL queries on subscriber and usage datasets to analyze CDR-based billing workflows, ensuring data consistency across relational tables. Created 5+ Linux shell scripts to automate log inspection and data extraction. Achieved a 10% infrastructure cost reduction by migrating 20+ client applications from mainframe systems to AWS (EC2, S3, CloudWatch). Integrated Hibernate ORM, improving query efficiency by 20%."
+    },
+    {
+      "company": "BSNL Telecom Factory",
       "position": "Summer Intern",
-      "duration": "Jun 2019 - Jul 2019",
-      "description": "Streamlined wireless networks leveraging TCP/IP protocols and Optical Fiber communication. Performed SQL data analysis and utilized ORM technologies (Hibernate) to improve relational database query efficiency by more than 10%."
+      "duration": "June 2019 - July 2019",
+      "description": "Analyzed Java-based enterprise applications and relational databases, writing SQL queries and Linux shell scripts to validate data workflows. Streamlined wireless networks for performance and reliability, leveraging TCP/IP, Optical Fiber communication, and database systems."
     }
   ],
   "education": [
@@ -62,16 +91,16 @@
       "graduation_end_date": "December 2025"
     },
     {
-      "institution": "Osmania University",
+      "institution": "Vasavi College of Engineering",
       "degree": "Bachelor of Engineering in Electronics and Communication Engineering",
-      "graduation_start_date": "July 2017",
-      "graduation_end_date": "July2021"
+      "graduation_start_date": "2017",
+      "graduation_end_date": "2021"
     }
   ],
   "projects": [
     {
       "name": "Cloud-Based Web Application with AWS and Terraform Integration",
-      "description": "Took end-to-end ownership of a secure web application, using Python and Terraform to automate infrastructure deployment on AWS (including S3, SQS, and RDS). [cite_start]Implemented a CI/CD pipeline with GitHub Actions for pipeline automation and automated testing[cite: 36, 37].",
+      "description": "Took end-to-end ownership of a secure web application, using Python and Terraform to automate infrastructure deployment on AWS (including S3, SQS, and RDS). Implemented a CI/CD pipeline with GitHub Actions for pipeline automation and automated testing.",
       "technologies": [
         "Python",
         "Terraform",
@@ -81,7 +110,7 @@
     },
     {
       "name": "Pickleball - Full-Stack Tournament Management Platform",
-      "description": "Applied knowledge of data structures, algorithms, and software design to craft a scalable microservices architecture using NestJS and Next.js. [cite_start]Built a responsive UI using Tailwind CSS and TypeScript[cite: 32, 33].",
+      "description": "Applied knowledge of data structures, algorithms, and software design to craft a scalable microservices architecture using NestJS and Next.js. Built a responsive UI using Tailwind CSS and TypeScript.",
       "technologies": [
         "NestJS",
         "Next.js 14",
@@ -139,7 +168,12 @@
       ]
     }
   ],
-  "certifications": [],
+  "certifications": [
+    "AWS Certified Cloud Practitioner",
+    "Cisco Certified Network Associate (CCNA) – Service Provider Operations",
+    "Java (Basic) Certification",
+    "Python Programming Certification"
+  ],
   "languages": [
     "Java",
     "C/C++",
@@ -154,13 +188,7 @@
       "role": "Vice-President",
       "organization": "Swayam E-cell",
       "duration": "July 2018 - July 2021",
-      "description": "Club that promotes spirit of entrepreneurship among students."
-    },
-    {
-      "role": "RSO Supervisor",
-      "organization": "Student Proctoring Team",
-      "duration": "Feb 2024 - Dec 2025",
-      "description": "Demonstrated effective leadership by supervising and mentoring a team of 50+ proctors."
+      "description": "Club that promotes the spirit of entrepreneurship among students."
     }
   ]
 }

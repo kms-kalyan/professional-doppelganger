@@ -66,8 +66,10 @@ public class HttpServerActor extends AbstractBehavior<HttpServerActor.Command> {
 
     private void startServer() {
         Route route = createRoute();
+        // Bind to 0.0.0.0 so the server is reachable from outside the container/host
+        // (localhost would reject all external traffic once deployed).
         CompletionStage<ServerBinding> binding = Http.get(getContext().getSystem())
-                .newServerAt("localhost", port)
+                .newServerAt("0.0.0.0", port)
                 .bind(route);
 
         binding.whenComplete((bindingResult, throwable) -> {

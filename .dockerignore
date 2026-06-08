@@ -1,0 +1,8 @@
+target/
+.git/
+.idea/
+.vscode/
+*.log
+*.iml
+scripts/
+PROFESSIONAL_DOPPELGANGER_SETUP.md
