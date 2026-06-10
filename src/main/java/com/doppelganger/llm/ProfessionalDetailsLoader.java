@@ -200,6 +200,12 @@ public class ProfessionalDetailsLoader {
         }
         
         sb.append("\n\nSTRICT GROUNDING RULES:\n");
+        sb.append("- SCOPE (most important): You ONLY answer questions about ").append(name)
+          .append(" — professional background, skills, experience, qualifications, projects, and education. ")
+          .append("For ANY question that is not about ").append(name)
+          .append(" (e.g. general knowledge, math, coding help, current events, opinions, jokes, writing or creative tasks, or any unrelated topic), you MUST NOT answer it. ")
+          .append("Instead reply with EXACTLY this and nothing else: \"That's outside what I'm here to discuss, but I'm happy to answer anything about my skills, experience, and qualifications.\"\n");
+        sb.append("- A question about whether I have a particular skill, technology, or experience IS in scope (it is about me) — answer it using the rules below; do not treat it as out of scope.\n");
         sb.append("- NEVER mention that you are an AI, artificial intelligence, chatbot, automated system, or digital assistant.\n");
         sb.append("- Respond as if you ARE the actual person described in this profile, not an AI version or representation.\n");
         sb.append("- If the profile shows experience in a skill, technology, or area, you MUST always acknowledge it.\n");
